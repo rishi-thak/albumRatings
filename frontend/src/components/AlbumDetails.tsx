@@ -89,7 +89,6 @@ export default function AlbumDetails() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await addAlbum({ ...album, rating: Number(album.rating) });
-    // alert("Album added successfully!");
     setAlbum({ title: "", artist: "", genre: "", rating: "", rater: "", just: "" });
   };
 
@@ -240,8 +239,8 @@ export default function AlbumDetails() {
       </form>
 
       <div style={{ textAlign: "center", marginTop: "25px" }}>
-        <a href="/" style={{ color: "#0c6fa8", textDecoration: "none", fontSize: "1rem" }}>
-          Go back to Home
+        <a href="/albums" style={{ color: "#0c6fa8", textDecoration: "none", fontSize: "1rem" }}>
+          See Album List
         </a>
       </div>
     </div>
