@@ -1,3 +1,4 @@
+// src/services/api.ts
 export interface Album {
   id: number;
   title: string;
@@ -10,10 +11,11 @@ export interface Album {
   spotify_url?: string;
 }
 
-const API_BASE = "http://127.0.0.1:5000/api/albums";
+// ✅ Use environment variable first, fallback to port 8000 (Gunicorn)
+const API_BASE = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000/api/albums";
 
 export async function getAlbums(): Promise<Album[]> {
-  const res = await fetch(API_BASE);
+  const res = await fetch(API_BASE + "/");
   if (!res.ok) throw new Error("Failed to fetch albums");
   return res.json();
 }
@@ -31,7 +33,6 @@ export async function addAlbum(album: any) {
   }
   return res.json();
 }
-
 
 export async function deleteAlbum(id: number) {
   const res = await fetch(`${API_BASE}/${id}`, { method: "DELETE" });

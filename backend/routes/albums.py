@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
-from database import get_db
-from utils.spotify import fetch_album_cover
+from backend.database import get_db
+from backend.utils.spotify import fetch_album_cover
 import os
 
 bp = Blueprint("albums", __name__, url_prefix="/api/albums")

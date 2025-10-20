@@ -1,12 +1,17 @@
 from flask import Flask
 from flask_cors import CORS
-from routes.albums import bp as albums_bp
+from backend.routes.albums import bp as albums_bp
 from dotenv import load_dotenv
 
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:3000", "http://127.0.0.1:3000"])
+CORS(app, origins=[
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    # "https://your-frontend-name.vercel.app"  # replace with your actual deployed frontend URL
+])
+
 
 app.register_blueprint(albums_bp)
 

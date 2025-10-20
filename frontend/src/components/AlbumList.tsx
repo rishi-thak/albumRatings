@@ -9,15 +9,17 @@ export default function AlbumList() {
     getAlbums().then(setAlbums).catch(console.error);
   }, []);
 
+  const API_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
   const handleDelete = async (id: number) => {
   const password = prompt("Enter password to delete album:");
   if (!password) return;
 
-  const res = await fetch(`http://127.0.0.1:5000/api/albums/${id}`, {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ password }),
-  });
+
+  const res = await fetch(`${API_URL}/api/albums/${id}`, {
+  method: "DELETE",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ password }),
+});
 
   if (res.status === 403) {
     alert("Incorrect password.");
