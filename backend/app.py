@@ -1,6 +1,6 @@
 from flask import Flask
 from flask_cors import CORS
-from backend.routes.albums import bp as albums_bp
+from routes.albums import bp as albums_bp
 from dotenv import load_dotenv
 
 load_dotenv()
