@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Album Ratings by Rishi</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        header {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 10px 0;
+        }
+        h1 {
+            margin: 0;
+        }
+        .container {
+            max-width: 90%;
+            margin: 30px auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        label, input, button {
+            font-size: 1rem;
+            margin-bottom: 10px;
+            display: block;
+            width: 100%;
+        }
+        input[type="number"] {
+            width: 80%;
+            padding: 8px;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin: 0 auto;
+            display: block;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #0c6fa8;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            width: 80%;
+            margin: 10px auto;
+        }
+        button:hover {
+            background-color: #084681;
+        }
+        .error {
+            color: red;
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+            .container {
+                width: 95%;
+                padding: 15px;
+            }
+            label, input, button {
+                font-size: 0.9rem;
+            }
+            input[type="number"], button {
+                width: 90%;
+            }
+        }
+
+        @media (min-width: 600px) and (max-width: 1024px) {
+            .container {
+                width: 80%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Album Ratings</h1>
+    </header>
+
+    <div class="container">
+        <h2>Enter the Number of Albums to Add:</h2>
+        <form action="/run-script" method="POST">
+            <!-- <label for="userInput">Enter:</label> -->
+            <input type="number" id="userInput" name="userInput" required min="1"><br><br>
+
+            <button type="submit">Submit</button>
+        </form>
+
+        {% if error %}
+            <p class="error">{{ error }}</p>
+        {% endif %}
+
+        <!-- Button to view album list -->
+        <a href="/album-list">
+            <button type="button">View Album List</button>
+        </a>
+    </div>
+
+    <footer>
+        <center><h3>Created by Rishi</h3></center>
+    </footer>
+
+</body>
+</html>

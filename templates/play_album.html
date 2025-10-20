@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Play Album</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        color: #333;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        width: 80%;
+        margin: 50px auto;
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        color: #4caf50;
+        text-align: center;
+        font-size: 2rem;
+      }
+      .album-details {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .album-cover {
+        width: 200px;
+        height: 200px;
+        object-fit: cover;
+        margin-bottom: 20px;
+      }
+      .album-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+      .album-artist {
+        font-size: 1.2rem;
+        margin-bottom: 20px;
+      }
+      .play-button {
+        background-color: #4caf50;
+        color: white;
+        font-size: 1rem;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .play-button:hover {
+        background-color: #45a049;
+      }
+      a {
+        text-decoration: none;
+        color: #4caf50;
+        font-size: 1rem;
+        margin-top: 20px;
+        display: inline-block;
+        text-align: center;
+      }
+      a:hover {
+        color: #45a049;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Play Album</h1>
+      <div class="album-details">
+        {% if album.cover_url %}
+        <img
+          class="album-cover"
+          src="{{ album.cover_url }}"
+          alt="Album Cover"
+        />
+        {% else %}
+        <img
+          class="album-cover"
+          src="https://via.placeholder.com/200"
+          alt="No Cover"
+        />
+        {% endif %}
+        <div class="album-title">{{ album.title }}</div>
+        <div class="album-artist">by {{ album.artist }}</div>
+        <button
+          class="play-button"
+          onclick="playSpotifyAlbum('{{ album.spotify_url }}')"
+        >
+          Play on Spotify
+        </button>
+      </div>
+      <a href="{{ url_for('album_list') }}">Back to Album List</a>
+    </div>
+
+    <script>
+      function playSpotifyAlbum(url) {
+        window.location.href = url;
+      }
+    </script>
+  </body>
+</html>
