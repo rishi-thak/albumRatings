@@ -13,6 +13,7 @@ CORS(app, origins=[
 ])
 
 
+
 app.register_blueprint(albums_bp)
 
 if __name__ == "__main__":
