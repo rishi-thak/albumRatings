@@ -202,7 +202,7 @@ const CLIENT_SECRET = process.env.REACT_APP_SPOTIFY_CLIENT_SECRET || "8cdc64dba4
         </div>
 
         {/* OTHER FIELDS */}
-        {["artist", "genre", "rating", "rater"].map((field) => (
+        {["artist", "genre", "rating (0-10)", "your name"].map((field) => (
           <div key={field} style={{ marginBottom: "20px" }}>
             <label style={{ display: "block", fontSize: "1rem", marginBottom: "6px", color: "#555" }}>
               {field.charAt(0).toUpperCase() + field.slice(1)}:

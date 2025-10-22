@@ -2,10 +2,13 @@ import React, { useState, useEffect } from "react";
 import { useAlbums } from "../hooks/useAlbums";
 import { Album } from "../services/api";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+
 
 export default function AlbumList() {
   const { data: albums, isLoading, error } = useAlbums();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [popup, setPopup] = useState<{ title: string; just: string } | null>(null);
   const [loadingText, setLoadingText] = useState("loading.");
 
@@ -158,10 +161,38 @@ export default function AlbumList() {
                   </a>
                 )}
               </div>
+              
             </div>
+            
           ))}
+          
+          <button
+            onClick={() => navigate("/")}
+            style={{
+              position: "fixed",
+              bottom: "20px",         // space above taskbar
+              left: "50%",
+              transform: "translateX(-50%)", // center horizontally
+              backgroundColor: "#0c6fa8",
+              color: "white",
+              border: "none",
+              padding: "10px 15px",
+              borderRadius: "4px",
+              cursor: "pointer",
+              width: "80%",
+              maxWidth: "600px",      // optional for nice scaling
+              boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
+              zIndex: 2000,           // ensures it's above other elements
+            }}
+          >
+            Go Home
+          </button>
+
+
         </>
+        
       )}
+      
 
       {/* No Albums */}
       {!isLoading && albums && albums.length === 0 && (
@@ -215,6 +246,7 @@ export default function AlbumList() {
           </div>
         </div>
       )}
+      
 
     </div>
   );
