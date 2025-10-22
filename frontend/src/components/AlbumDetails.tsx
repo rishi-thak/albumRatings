@@ -201,8 +201,99 @@ const CLIENT_SECRET = process.env.REACT_APP_SPOTIFY_CLIENT_SECRET || "8cdc64dba4
           )}
         </div>
 
-        {/* OTHER FIELDS */}
-        {["artist", "genre", "rating (0-10)", "your name"].map((field) => (
+          {/* ARTIST */}
+            <div style={{ marginBottom: "20px" }}>
+            <label style={{ display: "block", fontSize: "1rem", marginBottom: "6px", color: "#555" }}>
+                Artist:
+            </label>
+            <input
+                type="text"
+                name="artist"
+                value={album.artist}
+                onChange={handleChange}
+                required
+                style={{
+                width: "100%",
+                padding: "10px",
+                border: "1px solid #ddd",
+                borderRadius: "6px",
+                fontSize: "1rem",
+                boxSizing: "border-box",
+                }}
+            />
+            </div>
+
+            {/* GENRE */}
+            <div style={{ marginBottom: "20px" }}>
+            <label style={{ display: "block", fontSize: "1rem", marginBottom: "6px", color: "#555" }}>
+                Genre:
+            </label>
+            <input
+                type="text"
+                name="genre"
+                value={album.genre}
+                onChange={handleChange}
+                required
+                style={{
+                width: "100%",
+                padding: "10px",
+                border: "1px solid #ddd",
+                borderRadius: "6px",
+                fontSize: "1rem",
+                boxSizing: "border-box",
+                }}
+            />
+            </div>
+
+            {/* RATING */}
+            <div style={{ marginBottom: "20px" }}>
+            <label style={{ display: "block", fontSize: "1rem", marginBottom: "6px", color: "#555" }}>
+                Rating (0–10):
+            </label>
+            <input
+                type="number"
+                name="rating"
+                value={album.rating}
+                onChange={handleChange}
+                required
+                min="0"
+                max="10"
+                style={{
+                width: "100%",
+                padding: "10px",
+                border: "1px solid #ddd",
+                borderRadius: "6px",
+                fontSize: "1rem",
+                boxSizing: "border-box",
+                }}
+            />
+            </div>
+
+            {/* RATER (labeled Your Name) */}
+            <div style={{ marginBottom: "20px" }}>
+            <label style={{ display: "block", fontSize: "1rem", marginBottom: "6px", color: "#555" }}>
+                Your Name:
+            </label>
+            <input
+                type="text"
+                name="rater"            // ⚡️ keep this as 'rater'
+                value={album.rater}
+                onChange={handleChange}
+                required
+                style={{
+                width: "100%",
+                padding: "10px",
+                border: "1px solid #ddd",
+                borderRadius: "6px",
+                fontSize: "1rem",
+                boxSizing: "border-box",
+                }}
+            />
+            </div>
+
+
+        {/* OTHER FIELDS
+        {["artist", "genre", "rating", "rater"].map((field) => (
           <div key={field} style={{ marginBottom: "20px" }}>
             <label style={{ display: "block", fontSize: "1rem", marginBottom: "6px", color: "#555" }}>
               {field.charAt(0).toUpperCase() + field.slice(1)}:
@@ -223,7 +314,7 @@ const CLIENT_SECRET = process.env.REACT_APP_SPOTIFY_CLIENT_SECRET || "8cdc64dba4
               }}
             />
           </div>
-        ))}
+        ))} */}
 
         <div style={{ marginBottom: "21px" }}>
           <label style={{ display: "block", fontSize: "1rem", marginBottom: "6px", color: "#555" }}>
