@@ -10,6 +10,7 @@ CORS(app, origins=[
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "https://album-ratings-iwc8.vercel.app",
+    "https://album-ratings.vercel.app",
     "https://albumwriter-backend.onrender.com"
 ])
 

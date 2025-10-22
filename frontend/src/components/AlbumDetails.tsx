@@ -199,7 +199,7 @@ export default function AlbumDetails() {
           </div>
         ))}
 
-        <div style={{ marginBottom: "20px" }}>
+        <div style={{ marginBottom: "21px" }}>
           <label style={{ display: "block", fontSize: "1rem", marginBottom: "6px", color: "#555" }}>
             Reasoning:
           </label>
