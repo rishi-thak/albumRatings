@@ -5,14 +5,31 @@ export default function Home() {
   const [numAlbums, setNumAlbums] = useState(1);
   const navigate = useNavigate();
 
+  const handleSubmit = () => {
+    if (numAlbums < 1) {
+      alert("Please enter at least 1 album.");
+      return;
+    }
+    navigate(`/add/${numAlbums}`);
+  };
+
   return (
     <div>
-      <header style={{ backgroundColor: "#333", color: "white", textAlign: "center", padding: "10px 0" }}>
+      <header
+        style={{
+          backgroundColor: "#333",
+          color: "white",
+          textAlign: "center",
+          padding: "10px 0",
+        }}
+      >
         <h1>Album Ratings</h1>
       </header>
 
       <div className="container">
-        <center><h2>Enter the Number of Albums to Add:</h2></center>
+        <center>
+          <h2>Enter the Number of Albums to Add:</h2>
+        </center>
         <input
           type="number"
           value={numAlbums}
@@ -29,7 +46,7 @@ export default function Home() {
           }}
         />
         <button
-          onClick={() => navigate(`/add/${numAlbums}`)}
+          onClick={handleSubmit}
           style={{
             backgroundColor: "#0c6fa8",
             color: "white",

@@ -1,37 +1,58 @@
-import React, { useEffect, useState } from "react";
-import { getAlbums, Album } from "../services/api";
+import React, { useState, useEffect } from "react";
+import { useAlbums } from "../hooks/useAlbums";
+import { Album } from "../services/api";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function AlbumList() {
-  const [albums, setAlbums] = useState<Album[]>([]);
+  const { data: albums, isLoading, error, refetch } = useAlbums();
+  const queryClient = useQueryClient();
   const [popup, setPopup] = useState<{ title: string; just: string } | null>(null);
 
-  useEffect(() => {
-    getAlbums().then(setAlbums).catch(console.error);
-  }, []);
+  const API_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000/api/albums";
 
-  const API_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
+  // ✅ Force a refetch when component mounts (in case cache is stale or empty)
+  // useEffect(() => {
+  //   refetch();
+  // }, [refetch]);
+
+  // ✅ Delete album and update cache
   const handleDelete = async (id: number) => {
-  const password = prompt("Enter password to delete album:");
-  if (!password) return;
+    const password = prompt("Enter password to delete album:");
+    if (!password) return;
 
+    const res = await fetch(`${API_URL}/${id}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
 
-  const res = await fetch(`${API_URL}/api/albums/${id}`, {
-  method: "DELETE",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ password }),
-});
+    if (res.status === 403) {
+      alert("Incorrect password.");
+      return;
+    }
 
-  if (res.status === 403) {
-    alert("Incorrect password.");
-    return;
-  }
+    queryClient.setQueryData<Album[]>(["albums"], (oldAlbums) =>
+      oldAlbums ? oldAlbums.filter((a) => a.id !== id) : []
+    );
+  };
 
-  setAlbums((prev) => prev.filter((a) => a.id !== id));
-};
-
+  // ✅ Handle loading/error states
+  if (isLoading) return <p>Loading albums...</p>;
+  if (error) return <p>Failed to load albums.</p>;
+  if (!albums || albums.length === 0) return <p>No albums found.</p>;
 
   return (
-    <div className="container" style={{ width: "80%", margin: "50px auto", backgroundColor: "#fff", padding: "20px", borderRadius: "8px", boxShadow: "0 0 10px rgba(0, 0, 0, 0.1)" }}>
+    <div
+      className="container"
+      style={{
+        width: "80%",
+        margin: "50px auto",
+        backgroundColor: "#fff",
+        padding: "20px",
+        borderRadius: "8px",
+        boxShadow: "0 0 10px rgba(0, 0, 0, 0.1)",
+      }}
+    >
       <h1 style={{ color: "#4caf50", textAlign: "center" }}>Album List</h1>
       <center><p>Click on an album to view more details.</p></center>
 
@@ -55,7 +76,12 @@ export default function AlbumList() {
             <img
               src={album.cover_url || "https://via.placeholder.com/50"}
               alt="cover"
-              style={{ width: "50px", height: "50px", objectFit: "cover", marginRight: "15px" }}
+              style={{
+                width: "50px",
+                height: "50px",
+                objectFit: "cover",
+                marginRight: "15px",
+              }}
             />
             <div>
               <strong>{album.title}</strong> by {album.artist}
