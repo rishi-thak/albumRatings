@@ -168,38 +168,54 @@ export default function AlbumList() {
         <p style={{ textAlign: "center" }}>No albums found.</p>
       )}
 
-      {/* Popup */}
       {popup && (
-        <>
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+          }}
+          onClick={() => setPopup(null)} // closes only when you click *outside*
+        >
           <div
             style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              background: "rgba(0,0,0,0.5)",
-            }}
-            onClick={() => setPopup(null)}
-          ></div>
-          <div
-            style={{
-              position: "fixed",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
               background: "white",
               padding: "20px",
               borderRadius: "8px",
               boxShadow: "0 0 10px rgba(0,0,0,0.2)",
+              maxWidth: "500px",
+              width: "90%",
+              position: "relative",
             }}
+            onClick={(e) => e.stopPropagation()} // ⛔ stop click from bubbling up
           >
             <h2>{popup.title}</h2>
             <p>{popup.just}</p>
-            <button onClick={() => setPopup(null)}>Close</button>
+            <button
+              style={{
+                marginTop: "10px",
+                background: "#0c6fa8",
+                color: "white",
+                border: "none",
+                padding: "8px 12px",
+                borderRadius: "4px",
+                cursor: "pointer",
+              }}
+              onClick={() => setPopup(null)}
+            >
+              Close
+            </button>
           </div>
-        </>
+        </div>
       )}
+
     </div>
   );
 }

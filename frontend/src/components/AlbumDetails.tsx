@@ -95,8 +95,8 @@ const CLIENT_SECRET = process.env.REACT_APP_SPOTIFY_CLIENT_SECRET || "8cdc64dba4
     try {
       const newAlbum: Album = await addAlbum({ ...album, rating: Number(album.rating) });
 
-      // ✅ Update React Query cache immediately
-      queryClient.setQueryData<Album[]>(["albums"], (old) => (old ? [...old, newAlbum] : [newAlbum]));
+      // ✅ Tell React Query that albums data is outdated → refetch right away
+      queryClient.invalidateQueries({ queryKey: ["albums"] });
 
       setAlbum({ title: "", artist: "", genre: "", rating: "", rater: "", just: "" });
       setAddedCount((prev) => prev + 1);
