@@ -21,8 +21,9 @@ export default function AlbumDetails() {
   const { numAlbums } = useParams(); // from /add/:numAlbums
   const [addedCount, setAddedCount] = useState(0);
 
-  const CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID || "50237c828d5c4d8e99e85b62380cf95e";
-  const CLIENT_SECRET = import.meta.env.VITE_SPOTIFY_CLIENT_SECRET || "8cdc64dba43442eead4e3ccbbd8bda4b";
+  const CLIENT_ID = process.env.REACT_APP_SPOTIFY_CLIENT_ID || "50237c828d5c4d8e99e85b62380cf95e";
+const CLIENT_SECRET = process.env.REACT_APP_SPOTIFY_CLIENT_SECRET || "8cdc64dba43442eead4e3ccbbd8bda4b";
+
 
   // --- Spotify token ---
   useEffect(() => {
