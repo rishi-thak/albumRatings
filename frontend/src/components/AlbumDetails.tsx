@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-import { addAlbum } from "../services/api";
+import { addAlbum, Album } from "../services/api";
+import { useNavigate, useParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function AlbumDetails() {
   const [album, setAlbum] = useState({
@@ -14,9 +16,14 @@ export default function AlbumDetails() {
   const [accessToken, setAccessToken] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const suggestionRef = useRef<HTMLUListElement>(null);
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { numAlbums } = useParams(); // from /add/:numAlbums
+  const [addedCount, setAddedCount] = useState(0);
 
-  const CLIENT_ID = "50237c828d5c4d8e99e85b62380cf95e";
-  const CLIENT_SECRET = "8cdc64dba43442eead4e3ccbbd8bda4b";
+  const CLIENT_ID = process.env.REACT_APP_SPOTIFY_CLIENT_ID || "50237c828d5c4d8e99e85b62380cf95e";
+const CLIENT_SECRET = process.env.REACT_APP_SPOTIFY_CLIENT_SECRET || "8cdc64dba43442eead4e3ccbbd8bda4b";
+
 
   // --- Spotify token ---
   useEffect(() => {
@@ -35,13 +42,10 @@ export default function AlbumDetails() {
     getAccessToken();
   }, []);
 
-  // --- Click outside hides dropdown ---
+  // --- Hide dropdown on outside click ---
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        suggestionRef.current &&
-        !suggestionRef.current.contains(event.target as Node)
-      ) {
+      if (suggestionRef.current && !suggestionRef.current.contains(event.target as Node)) {
         setSuggestions([]);
       }
     };
@@ -88,8 +92,25 @@ export default function AlbumDetails() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await addAlbum({ ...album, rating: Number(album.rating) });
-    setAlbum({ title: "", artist: "", genre: "", rating: "", rater: "", just: "" });
+    try {
+      const newAlbum: Album = await addAlbum({ ...album, rating: Number(album.rating) });
+
+      // ✅ Tell React Query that albums data is outdated → refetch right away
+      queryClient.invalidateQueries({ queryKey: ["albums"] });
+
+      setAlbum({ title: "", artist: "", genre: "", rating: "", rater: "", just: "" });
+      setAddedCount((prev) => prev + 1);
+
+      if (Number(numAlbums) && addedCount + 1 < Number(numAlbums)) {
+        alert(`Album ${addedCount + 1} added! Add the next one.`);
+      } else {
+        alert("All albums added!");
+        navigate("/albums");
+      }
+    } catch (err) {
+      console.error("Failed to add album:", err);
+      alert("Failed to add album. Please try again.");
+    }
   };
 
   return (
@@ -105,7 +126,7 @@ export default function AlbumDetails() {
       }}
     >
       <h1 style={{ color: "#4caf50", textAlign: "center", fontSize: "2rem", marginBottom: "25px" }}>
-        Enter Album Details
+        Enter Album Details ({addedCount + 1}/{numAlbums || 1})
       </h1>
 
       <form onSubmit={handleSubmit}>
@@ -164,7 +185,12 @@ export default function AlbumDetails() {
                   <img
                     src={a.images[0]?.url || "https://via.placeholder.com/30"}
                     alt={a.name}
-                    style={{ width: "35px", height: "35px", borderRadius: "4px", marginRight: "10px" }}
+                    style={{
+                      width: "35px",
+                      height: "35px",
+                      borderRadius: "4px",
+                      marginRight: "10px",
+                    }}
                   />
                   <span style={{ fontSize: "0.95rem" }}>
                     {a.name} – {a.artists[0].name}
@@ -176,7 +202,7 @@ export default function AlbumDetails() {
         </div>
 
         {/* OTHER FIELDS */}
-        {["artist", "genre", "rating", "rater"].map((field) => (
+        {["artist", "genre", "rating (0-10)", "your name"].map((field) => (
           <div key={field} style={{ marginBottom: "20px" }}>
             <label style={{ display: "block", fontSize: "1rem", marginBottom: "6px", color: "#555" }}>
               {field.charAt(0).toUpperCase() + field.slice(1)}:
