@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from database import get_db
+from database import supabase
 from utils.spotify import fetch_album_cover
 import os
 
@@ -11,12 +11,12 @@ bp = Blueprint("albums", __name__, url_prefix="/api/albums")
 # ------------------------------
 @bp.route("/", methods=["GET"])
 def get_albums():
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM albums")
-    albums = [dict(row) for row in cursor.fetchall()]
-    conn.close()
-    return jsonify(albums)
+    try:
+        response = supabase.table("albums").select("*").execute()
+        return jsonify(response.data or [])
+    except Exception as e:
+        print("❌ Error fetching albums:", e)
+        return jsonify({"error": str(e)}), 500
 
 
 # ------------------------------
@@ -39,29 +39,22 @@ def add_album():
         data["title"], data["artist"], client_id, client_secret
     )
 
-    # Save to database
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute(
-        """
-        INSERT INTO albums (title, artist, genre, rating, rater, just, cover_url, spotify_url)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            data["title"].strip().title(),
-            data["artist"].strip().title(),
-            data["genre"].strip().title(),
-            float(data["rating"]),
-            data["rater"].strip().title(),
-            data["just"].strip(),
-            cover_url,
-            spotify_url,
-        ),
-    )
-    conn.commit()
-    conn.close()
+    try:
+        supabase.table("albums").insert({
+            "title": data["title"].strip().title(),
+            "artist": data["artist"].strip().title(),
+            "genre": data["genre"].strip().title(),
+            "rating": float(data["rating"]),
+            "rater": data["rater"].strip().title(),
+            "just": data["just"].strip(),
+            "cover_url": cover_url,
+            "spotify_url": spotify_url
+        }).execute()
 
-    return jsonify({"message": "Album added successfully"}), 201
+        return jsonify({"message": "Album added successfully"}), 201
+    except Exception as e:
+        print("❌ Error adding album:", e)
+        return jsonify({"error": str(e)}), 500
 
 
 # ------------------------------
@@ -72,16 +65,15 @@ def delete_album(album_id):
     data = request.get_json()
     password = data.get("password") if data else None
 
-    if password != "rishi123":
+    if password != os.getenv("ADMIN_PASSWORD", "rishi123"):
         return jsonify({"error": "Invalid password"}), 403
 
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM albums WHERE id = ?", (album_id,))
-    conn.commit()
-    conn.close()
-
-    return jsonify({"message": "Album removed"}), 200
+    try:
+        supabase.table("albums").delete().eq("id", album_id).execute()
+        return jsonify({"message": "Album removed"}), 200
+    except Exception as e:
+        print("❌ Error deleting album:", e)
+        return jsonify({"error": str(e)}), 500
 
 
 # ------------------------------
@@ -89,17 +81,18 @@ def delete_album(album_id):
 # ------------------------------
 @bp.route("/<int:album_id>/spotify", methods=["GET"])
 def get_album_spotify(album_id):
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT title, artist FROM albums WHERE id = ?", (album_id,))
-    album = cursor.fetchone()
-    conn.close()
+    try:
+        response = supabase.table("albums").select("title, artist").eq("id", album_id).single().execute()
 
-    if not album:
-        return jsonify({"error": "Album not found"}), 404
+        if not response.data:
+            return jsonify({"error": "Album not found"}), 404
 
-    client_id = os.getenv("SPOTIFY_CLIENT_ID")
-    client_secret = os.getenv("SPOTIFY_CLIENT_SECRET")
-    cover_url, spotify_url = fetch_album_cover(album["title"], album["artist"], client_id, client_secret)
+        album = response.data
+        client_id = os.getenv("SPOTIFY_CLIENT_ID")
+        client_secret = os.getenv("SPOTIFY_CLIENT_SECRET")
+        cover_url, spotify_url = fetch_album_cover(album["title"], album["artist"], client_id, client_secret)
 
-    return jsonify({"cover_url": cover_url, "spotify_url": spotify_url})
+        return jsonify({"cover_url": cover_url, "spotify_url": spotify_url})
+    except Exception as e:
+        print("❌ Error fetching Spotify info:", e)
+        return jsonify({"error": str(e)}), 500
