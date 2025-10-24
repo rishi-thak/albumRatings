@@ -1,31 +1,14 @@
-import sqlite3
+# database.py
+from supabase import create_client
 import os
+from dotenv import load_dotenv
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATABASE = os.path.join(BASE_DIR, "albums.db")
+load_dotenv()
 
-def get_db():
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    return conn
+SUPABASE_URL = "https://qbiewszsvabezpoarafz.supabase.co"
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-def init_db():
-    conn = sqlite3.connect(DATABASE)
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS albums (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            artist TEXT NOT NULL,
-            genre TEXT NOT NULL,
-            rating INTEGER NOT NULL,
-            rater TEXT NOT NULL,
-            just TEXT NOT NULL
-        )
-    """)
-    conn.commit()
-    conn.close()
+if not SUPABASE_KEY:
+    raise ValueError("Missing SUPABASE_KEY in environment variables")
 
-if __name__ == "__main__":
-    init_db()
-    print("Database initialized.")
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)

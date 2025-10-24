@@ -1,5 +1,6 @@
+# routes/albums.py
 from flask import Blueprint, request, jsonify
-from database import get_db
+from database import supabase
 from utils.spotify import fetch_album_cover
 import os
 
@@ -11,12 +12,8 @@ bp = Blueprint("albums", __name__, url_prefix="/api/albums")
 # ------------------------------
 @bp.route("/", methods=["GET"])
 def get_albums():
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM albums")
-    albums = [dict(row) for row in cursor.fetchall()]
-    conn.close()
-    return jsonify(albums)
+    response = supabase.table("albums").select("*").execute()
+    return jsonify(response.data or [])
 
 
 # ------------------------------
@@ -39,27 +36,20 @@ def add_album():
         data["title"], data["artist"], client_id, client_secret
     )
 
-    # Save to database
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute(
-        """
-        INSERT INTO albums (title, artist, genre, rating, rater, just, cover_url, spotify_url)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            data["title"].strip().title(),
-            data["artist"].strip().title(),
-            data["genre"].strip().title(),
-            float(data["rating"]),
-            data["rater"].strip().title(),
-            data["just"].strip(),
-            cover_url,
-            spotify_url,
-        ),
-    )
-    conn.commit()
-    conn.close()
+    # Insert into Supabase
+    result = supabase.table("albums").insert({
+        "title": data["title"].strip().title(),
+        "artist": data["artist"].strip().title(),
+        "genre": data["genre"].strip().title(),
+        "rating": float(data["rating"]),
+        "rater": data["rater"].strip().title(),
+        "just": data["just"].strip(),
+        "cover_url": cover_url,
+        "spotify_url": spotify_url
+    }).execute()
+
+    if result.error:
+        return jsonify({"error": str(result.error)}), 500
 
     return jsonify({"message": "Album added successfully"}), 201
 
@@ -72,14 +62,13 @@ def delete_album(album_id):
     data = request.get_json()
     password = data.get("password") if data else None
 
-    if password != "rishi123":
+    if password != os.getenv("ADMIN_PASSWORD"):
         return jsonify({"error": "Invalid password"}), 403
 
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM albums WHERE id = ?", (album_id,))
-    conn.commit()
-    conn.close()
+    result = supabase.table("albums").delete().eq("id", album_id).execute()
+
+    if result.error:
+        return jsonify({"error": str(result.error)}), 500
 
     return jsonify({"message": "Album removed"}), 200
 
@@ -89,15 +78,12 @@ def delete_album(album_id):
 # ------------------------------
 @bp.route("/<int:album_id>/spotify", methods=["GET"])
 def get_album_spotify(album_id):
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT title, artist FROM albums WHERE id = ?", (album_id,))
-    album = cursor.fetchone()
-    conn.close()
+    response = supabase.table("albums").select("title, artist").eq("id", album_id).single().execute()
 
-    if not album:
+    if not response.data:
         return jsonify({"error": "Album not found"}), 404
 
+    album = response.data
     client_id = os.getenv("SPOTIFY_CLIENT_ID")
     client_secret = os.getenv("SPOTIFY_CLIENT_SECRET")
     cover_url, spotify_url = fetch_album_cover(album["title"], album["artist"], client_id, client_secret)
