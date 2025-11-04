@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
-// import { addAlbum, Album } from "../services/api";
-import { useNavigate, useParams } from "react-router-dom";
+import { addAlbum, Album } from "../services/api";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 
 export default function AlbumDetails() {
   const [album, setAlbum] = useState({
@@ -11,6 +12,8 @@ export default function AlbumDetails() {
     rating: "",
     rater: "",
     just: "",
+    cover_url: "",
+    spotify_url: "",
   });
 
   const [accessToken, setAccessToken] = useState("");
@@ -26,28 +29,52 @@ export default function AlbumDetails() {
   const CLIENT_SECRET =
     process.env.REACT_APP_SPOTIFY_CLIENT_SECRET || "8cdc64dba43442eead4e3ccbbd8bda4b";
 
-  // Spotify Token
+  const location = useLocation();
+  const albumToEdit = location.state?.albumToEdit;
+
+  // ✅ Pre-fill form if editing
+  useEffect(() => {
+    if (albumToEdit) {
+      setAlbum({
+        title: albumToEdit.title || "",
+        artist: albumToEdit.artist || "",
+        genre: albumToEdit.genre || "",
+        rating: albumToEdit.rating?.toString() || "",
+        rater: albumToEdit.rater || "",
+        just: albumToEdit.just || "",
+        cover_url: albumToEdit.cover_url || "",
+        spotify_url: albumToEdit.spotify_url || "",
+      });
+    }
+  }, [albumToEdit]);
+
+  // ✅ Spotify Token
   useEffect(() => {
     const getAccessToken = async () => {
-      const res = await fetch("https://accounts.spotify.com/api/token", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Authorization: "Basic " + btoa(CLIENT_ID + ":" + CLIENT_SECRET),
-        },
-        body: "grant_type=client_credentials",
-      });
-      const data = await res.json();
-      setAccessToken(data.access_token);
+      try {
+        const res = await fetch("https://accounts.spotify.com/api/token", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            Authorization: "Basic " + btoa(CLIENT_ID + ":" + CLIENT_SECRET),
+          },
+          body: "grant_type=client_credentials",
+        });
+        const data = await res.json();
+        setAccessToken(data.access_token);
+      } catch (err) {
+        console.error("Failed to fetch Spotify token:", err);
+      }
     };
     getAccessToken();
   }, [CLIENT_ID, CLIENT_SECRET]);
 
-  // Hide dropdown
+  // ✅ Hide dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (suggestionRef.current && !suggestionRef.current.contains(e.target as Node))
+    const handleClickOutside = (event: MouseEvent) => {
+      if (suggestionRef.current && !suggestionRef.current.contains(event.target as Node)) {
         setSuggestions([]);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -57,60 +84,129 @@ export default function AlbumDetails() {
     setAlbum({ ...album, [e.target.name]: e.target.value });
   };
 
+  // ✅ Spotify search
   const searchAlbums = async (query: string) => {
     if (query.length < 2) return setSuggestions([]);
-    const res = await fetch(
-      `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=album&limit=5`,
-      { headers: { Authorization: "Bearer " + accessToken } }
-    );
-    const data = await res.json();
-    setSuggestions(data.albums?.items || []);
+    try {
+      const res = await fetch(
+        `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=album&limit=5`,
+        { headers: { Authorization: "Bearer " + accessToken } }
+      );
+      const data = await res.json();
+      setSuggestions(data.albums?.items || []);
+    } catch (err) {
+      console.error("Spotify search error:", err);
+    }
   };
 
+  // ✅ Select from Spotify dropdown
   const selectAlbum = async (albumItem: any) => {
-    setAlbum({
-      ...album,
-      title: albumItem.name,
-      artist: albumItem.artists[0].name,
-      genre: "",
-      rating: "",
-      rater: "",
-      just: "",
-    });
+    try {
+      const res = await fetch(`https://api.spotify.com/v1/artists/${albumItem.artists[0].id}`, {
+        headers: { Authorization: "Bearer " + accessToken },
+      });
+      const artistData = await res.json();
 
-    // fetch artist genres
-    const res = await fetch(`https://api.spotify.com/v1/artists/${albumItem.artists[0].id}`, {
-      headers: { Authorization: "Bearer " + accessToken },
-    });
-    const artistData = await res.json();
-    setAlbum((prev) => ({ ...prev, genre: artistData.genres.join(", ") || "Unknown" }));
-    setSuggestions([]);
+      setAlbum({
+        title: albumItem.name,
+        artist: albumItem.artists[0].name,
+        genre: artistData.genres.join(", ") || "Unknown",
+        rating: "",
+        rater: "",
+        just: "",
+        cover_url: albumItem.images[0]?.url || "",
+        spotify_url: albumItem.external_urls.spotify || "",
+      });
+
+      setSuggestions([]);
+    } catch (err) {
+      console.error("Failed to fetch artist genres:", err);
+    }
   };
 
+  // ✅ Submit form (add or re-add)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const payload = {
+      ...album,
+      rating: Number(album.rating) || 0,
+      cover_url: album.cover_url || "",
+      spotify_url: album.spotify_url || "",
+    };
+
     try {
+      // --- If editing ---
+      if (albumToEdit) {
+        const password = prompt("Enter admin password to edit album:");
+        if (!password) return toast("Edit cancelled.");
+
+        toast.loading("Updating album...", { id: "edit" });
+
+        // 1️⃣ Delete old entry
+        const deleteRes = await fetch(
+          `http://127.0.0.1:8000/api/albums/${albumToEdit.id}`,
+          {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ password }),
+          }
+        );
+
+        if (deleteRes.status === 403) {
+          toast.dismiss("edit");
+          toast.error("Incorrect password. Album not updated.");
+          return;
+        }
+
+        if (!deleteRes.ok) {
+          toast.dismiss("edit");
+          toast.error("Failed to delete old album.");
+          return;
+        }
+
+        // 2️⃣ Re-add updated album
+        await addAlbum(payload as Album);
+        queryClient.invalidateQueries({ queryKey: ["albums"] });
+        toast.dismiss("edit");
+        toast.success("Album updated successfully!");
+        navigate("/albums");
+        return;
+      }
+
+      // --- If adding new album ---
+      await addAlbum(payload as Album);
       queryClient.invalidateQueries({ queryKey: ["albums"] });
-      setAlbum({ title: "", artist: "", genre: "", rating: "", rater: "", just: "" });
+      toast.success("Album added successfully!");
       setAddedCount((prev) => prev + 1);
 
+      setAlbum({
+        title: "",
+        artist: "",
+        genre: "",
+        rating: "",
+        rater: "",
+        just: "",
+        cover_url: "",
+        spotify_url: "",
+      });
+
       if (Number(numAlbums) && addedCount + 1 < Number(numAlbums)) {
-        alert(`Album ${addedCount + 1} added! Add the next one.`);
+        toast(`Album ${addedCount + 1} added — add the next one!`, { icon: "🎵" });
       } else {
-        alert("All albums added!");
         navigate("/albums");
       }
     } catch (err) {
-      console.error("Failed to add album:", err);
-      alert("Failed to add album. Please try again.");
+      console.error("Failed to add/update album:", err);
+      toast.error("Something went wrong. Please try again.");
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
+    <div className="min-h-screen bg-[#0a0a0a] text-gray-100">
       <div className="max-w-3xl mx-auto px-6 py-12">
         <h1 className="text-4xl font-black mb-8 text-white tracking-tight">
-          Add Album {/* ({addedCount + 1}/{numAlbums || 1}) */}
+          {albumToEdit ? "Edit Album" : `Add Album (${addedCount + 1}/${numAlbums || 1})`}
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -125,18 +221,18 @@ export default function AlbumDetails() {
               onKeyUp={(e) => searchAlbums((e.target as HTMLInputElement).value)}
               placeholder="Search Spotify..."
               required
-              className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded focus:border-sky-500 focus:outline-none text-gray-100"
+              className="w-full px-4 py-3 bg-[#111] border border-[#222] rounded focus:border-[#3b82f6] focus:outline-none text-gray-100"
             />
             {suggestions.length > 0 && (
               <ul
                 ref={suggestionRef}
-                className="absolute z-10 mt-1 w-full bg-gray-900 border border-gray-700 rounded shadow-lg max-h-60 overflow-y-auto"
+                className="absolute z-10 mt-1 w-full bg-[#111] border border-[#222] rounded shadow-lg max-h-60 overflow-y-auto"
               >
                 {suggestions.map((a) => (
                   <li
                     key={a.id}
                     onClick={() => selectAlbum(a)}
-                    className="flex items-center px-3 py-2 hover:bg-gray-800 cursor-pointer"
+                    className="flex items-center px-3 py-2 hover:bg-[#1a1a1a] cursor-pointer"
                   >
                     <img
                       src={a.images[0]?.url || "https://via.placeholder.com/30"}
@@ -161,7 +257,7 @@ export default function AlbumDetails() {
               value={album.artist}
               onChange={handleChange}
               required
-              className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded focus:border-sky-500 focus:outline-none text-gray-100"
+              className="w-full px-4 py-3 bg-[#111] border border-[#222] rounded focus:border-[#3b82f6] focus:outline-none text-gray-100"
             />
           </div>
 
@@ -173,7 +269,7 @@ export default function AlbumDetails() {
               name="genre"
               value={album.genre}
               onChange={handleChange}
-              className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded focus:border-sky-500 focus:outline-none text-gray-100"
+              className="w-full px-4 py-3 bg-[#111] border border-[#222] rounded focus:border-[#3b82f6] focus:outline-none text-gray-100"
             />
           </div>
 
@@ -188,7 +284,7 @@ export default function AlbumDetails() {
               min="0"
               max="10"
               step="0.5"
-              className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded focus:border-sky-500 focus:outline-none text-gray-100"
+              className="w-full px-4 py-3 bg-[#111] border border-[#222] rounded focus:border-[#3b82f6] focus:outline-none text-gray-100"
             />
           </div>
 
@@ -201,7 +297,7 @@ export default function AlbumDetails() {
               value={album.rater}
               onChange={handleChange}
               required
-              className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded focus:border-sky-500 focus:outline-none text-gray-100"
+              className="w-full px-4 py-3 bg-[#111] border border-[#222] rounded focus:border-[#3b82f6] focus:outline-none text-gray-100"
             />
           </div>
 
@@ -213,20 +309,20 @@ export default function AlbumDetails() {
               value={album.just}
               onChange={handleChange}
               required
-              className="w-full h-28 px-4 py-3 bg-gray-900 border border-gray-700 rounded focus:border-sky-500 focus:outline-none text-gray-100 resize-none"
+              className="w-full h-28 px-4 py-3 bg-[#111] border border-[#222] rounded focus:border-[#3b82f6] focus:outline-none text-gray-100 resize-none"
             />
           </div>
 
           <button
             type="submit"
-            className="w-full bg-sky-500 hover:bg-sky-600 text-white font-semibold py-3 rounded"
+            className="w-full bg-[#3b82f6] hover:bg-[#2563eb] text-white font-semibold py-3 rounded"
           >
-            Submit Album
+            {albumToEdit ? "Save Changes" : "Submit Album"}
           </button>
         </form>
 
         <div className="text-center mt-8">
-          <a href="/albums" className="text-sky-400 hover:text-sky-300">
+          <a href="/albums" className="text-[#3b82f6] hover:text-[#2563eb]">
             See Album List
           </a>
         </div>

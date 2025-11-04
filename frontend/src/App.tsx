@@ -1,5 +1,11 @@
 import React, { useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Link, useLocation } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Link,
+  useLocation,
+} from "react-router-dom";
 
 import Home from "./components/Home";
 import AlbumList from "./components/AlbumList";
@@ -9,12 +15,13 @@ import ErrorPage from "./components/ErrorPage";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { getAlbums } from "./services/api";
+import { Toaster } from "react-hot-toast";
 
 /**
- * App shell:
- * - Keeps your exact routes/endpoints
- * - Defaults to dark mode by adding `dark` class to <html>
- * - Adds a minimal top nav consistent with the new skin
+ * Navigation bar:
+ * - Fixed top header
+ * - Dark theme, minimal layout
+ * - Matches your Tailwind palette
  */
 function Nav() {
   const location = useLocation();
@@ -23,7 +30,10 @@ function Nav() {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/75">
       <div className="mx-auto max-w-7xl px-6 py-4 flex items-center justify-between">
-        <Link to="/" className="font-black tracking-tight text-white text-xl md:text-2xl">
+        <Link
+          to="/"
+          className="font-black tracking-tight text-white text-xl md:text-2xl"
+        >
           RISHI'S<span className="text-accent">RECORDS</span>
         </Link>
         <nav className="flex items-center gap-3">
@@ -47,15 +57,21 @@ function Nav() {
   );
 }
 
+/**
+ * App:
+ * - Keeps all backend route logic
+ * - Prefetches albums for performance
+ * - Global Toaster for clean success/error messages
+ */
 export default function App() {
   const queryClient = useQueryClient();
 
-  // Default to dark mode (no theme toggle yet; can add later)
+  // Default to dark mode
   useEffect(() => {
     document.documentElement.classList.add("dark");
   }, []);
 
-  // Prefetch albums on app start (unchanged)
+  // Prefetch albums when app mounts
   useEffect(() => {
     queryClient
       .prefetchQuery({
@@ -79,6 +95,32 @@ export default function App() {
           </Routes>
         </main>
       </Router>
+
+      {/* 🔔 Global Toaster for success/error feedback */}
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: "#111111",
+            color: "#f9fafb",
+            border: "1px solid #333",
+            fontFamily: "Inter, system-ui, sans-serif",
+          },
+          success: {
+            iconTheme: {
+              primary: "#3b82f6",
+              secondary: "#111",
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: "#ef4444",
+              secondary: "#111",
+            },
+          },
+        }}
+      />
     </div>
   );
 }
