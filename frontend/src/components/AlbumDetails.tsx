@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { addAlbum, Album } from "../services/api";
+// import { addAlbum, Album } from "../services/api";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -18,14 +18,15 @@ export default function AlbumDetails() {
   const suggestionRef = useRef<HTMLUListElement>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { numAlbums } = useParams(); // from /add/:numAlbums
+  const { numAlbums } = useParams();
   const [addedCount, setAddedCount] = useState(0);
 
-  const CLIENT_ID = process.env.REACT_APP_SPOTIFY_CLIENT_ID || "50237c828d5c4d8e99e85b62380cf95e";
-const CLIENT_SECRET = process.env.REACT_APP_SPOTIFY_CLIENT_SECRET || "8cdc64dba43442eead4e3ccbbd8bda4b";
+  const CLIENT_ID =
+    process.env.REACT_APP_SPOTIFY_CLIENT_ID || "50237c828d5c4d8e99e85b62380cf95e";
+  const CLIENT_SECRET =
+    process.env.REACT_APP_SPOTIFY_CLIENT_SECRET || "8cdc64dba43442eead4e3ccbbd8bda4b";
 
-
-  // --- Spotify token ---
+  // Spotify Token
   useEffect(() => {
     const getAccessToken = async () => {
       const res = await fetch("https://accounts.spotify.com/api/token", {
@@ -40,14 +41,13 @@ const CLIENT_SECRET = process.env.REACT_APP_SPOTIFY_CLIENT_SECRET || "8cdc64dba4
       setAccessToken(data.access_token);
     };
     getAccessToken();
-  }, []);
+  }, [CLIENT_ID, CLIENT_SECRET]);
 
-  // --- Hide dropdown on outside click ---
+  // Hide dropdown
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (suggestionRef.current && !suggestionRef.current.contains(event.target as Node)) {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (suggestionRef.current && !suggestionRef.current.contains(e.target as Node))
         setSuggestions([]);
-      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -78,26 +78,19 @@ const CLIENT_SECRET = process.env.REACT_APP_SPOTIFY_CLIENT_SECRET || "8cdc64dba4
       just: "",
     });
 
-    // Fetch artist genres
+    // fetch artist genres
     const res = await fetch(`https://api.spotify.com/v1/artists/${albumItem.artists[0].id}`, {
       headers: { Authorization: "Bearer " + accessToken },
     });
     const artistData = await res.json();
-    setAlbum((prev) => ({
-      ...prev,
-      genre: artistData.genres.join(", ") || "Unknown",
-    }));
+    setAlbum((prev) => ({ ...prev, genre: artistData.genres.join(", ") || "Unknown" }));
     setSuggestions([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const newAlbum: Album = await addAlbum({ ...album, rating: Number(album.rating) });
-
-      // ✅ Tell React Query that albums data is outdated → refetch right away
       queryClient.invalidateQueries({ queryKey: ["albums"] });
-
       setAlbum({ title: "", artist: "", genre: "", rating: "", rater: "", just: "" });
       setAddedCount((prev) => prev + 1);
 
@@ -114,251 +107,129 @@ const CLIENT_SECRET = process.env.REACT_APP_SPOTIFY_CLIENT_SECRET || "8cdc64dba4
   };
 
   return (
-    <div
-      className="container"
-      style={{
-        width: "60%",
-        margin: "50px auto",
-        backgroundColor: "#fff",
-        padding: "30px 40px",
-        borderRadius: "10px",
-        boxShadow: "0 0 12px rgba(0, 0, 0, 0.1)",
-      }}
-    >
-      <h1 style={{ color: "#4caf50", textAlign: "center", fontSize: "2rem", marginBottom: "25px" }}>
-        Enter Album Details ({addedCount + 1}/{numAlbums || 1})
-      </h1>
+    <div className="min-h-screen bg-gray-950 text-gray-100">
+      <div className="max-w-3xl mx-auto px-6 py-12">
+        <h1 className="text-4xl font-black mb-8 text-white tracking-tight">
+          Add Album ({addedCount + 1}/{numAlbums || 1})
+        </h1>
 
-      <form onSubmit={handleSubmit}>
-        {/* TITLE */}
-        <div style={{ marginBottom: "20px", position: "relative" }}>
-          <label style={{ display: "block", fontSize: "1rem", marginBottom: "6px", color: "#555" }}>
-            Title:
-          </label>
-          <input
-            type="text"
-            name="title"
-            value={album.title}
-            onChange={handleChange}
-            onKeyUp={(e) => searchAlbums((e.target as HTMLInputElement).value)}
-            placeholder="Type to search Spotify..."
-            required
-            style={{
-              width: "100%",
-              padding: "10px",
-              border: "1px solid #ddd",
-              borderRadius: "6px",
-              fontSize: "1rem",
-              boxSizing: "border-box",
-            }}
-          />
-          {suggestions.length > 0 && (
-            <ul
-              ref={suggestionRef}
-              style={{
-                position: "absolute",
-                background: "white",
-                border: "1px solid #ddd",
-                listStyle: "none",
-                margin: "4px 0 0 0",
-                padding: 0,
-                width: "100%",
-                maxHeight: "200px",
-                overflowY: "auto",
-                borderRadius: "6px",
-                boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
-                zIndex: 10,
-              }}
-            >
-              {suggestions.map((a) => (
-                <li
-                  key={a.id}
-                  onClick={() => selectAlbum(a)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    padding: "8px 10px",
-                    cursor: "pointer",
-                    borderBottom: "1px solid #eee",
-                  }}
-                >
-                  <img
-                    src={a.images[0]?.url || "https://via.placeholder.com/30"}
-                    alt={a.name}
-                    style={{
-                      width: "35px",
-                      height: "35px",
-                      borderRadius: "4px",
-                      marginRight: "10px",
-                    }}
-                  />
-                  <span style={{ fontSize: "0.95rem" }}>
-                    {a.name} – {a.artists[0].name}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-          {/* ARTIST */}
-            <div style={{ marginBottom: "20px" }}>
-            <label style={{ display: "block", fontSize: "1rem", marginBottom: "6px", color: "#555" }}>
-                Artist:
-            </label>
-            <input
-                type="text"
-                name="artist"
-                value={album.artist}
-                onChange={handleChange}
-                required
-                style={{
-                width: "100%",
-                padding: "10px",
-                border: "1px solid #ddd",
-                borderRadius: "6px",
-                fontSize: "1rem",
-                boxSizing: "border-box",
-                }}
-            />
-            </div>
-
-            {/* GENRE */}
-            <div style={{ marginBottom: "20px" }}>
-            <label style={{ display: "block", fontSize: "1rem", marginBottom: "6px", color: "#555" }}>
-                Genre:
-            </label>
-            <input
-                type="text"
-                name="genre"
-                value={album.genre}
-                onChange={handleChange}
-                required
-                style={{
-                width: "100%",
-                padding: "10px",
-                border: "1px solid #ddd",
-                borderRadius: "6px",
-                fontSize: "1rem",
-                boxSizing: "border-box",
-                }}
-            />
-            </div>
-
-            {/* RATING */}
-            <div style={{ marginBottom: "20px" }}>
-            <label style={{ display: "block", fontSize: "1rem", marginBottom: "6px", color: "#555" }}>
-                Rating (0–10):
-            </label>
-            <input
-                type="number"
-                name="rating"
-                value={album.rating}
-                onChange={handleChange}
-                required
-                min="0"
-                max="10"
-                style={{
-                width: "100%",
-                padding: "10px",
-                border: "1px solid #ddd",
-                borderRadius: "6px",
-                fontSize: "1rem",
-                boxSizing: "border-box",
-                }}
-            />
-            </div>
-
-            {/* RATER (labeled Your Name) */}
-            <div style={{ marginBottom: "20px" }}>
-            <label style={{ display: "block", fontSize: "1rem", marginBottom: "6px", color: "#555" }}>
-                Your Name:
-            </label>
-            <input
-                type="text"
-                name="rater"            // ⚡️ keep this as 'rater'
-                value={album.rater}
-                onChange={handleChange}
-                required
-                style={{
-                width: "100%",
-                padding: "10px",
-                border: "1px solid #ddd",
-                borderRadius: "6px",
-                fontSize: "1rem",
-                boxSizing: "border-box",
-                }}
-            />
-            </div>
-
-
-        {/* OTHER FIELDS
-        {["artist", "genre", "rating", "rater"].map((field) => (
-          <div key={field} style={{ marginBottom: "20px" }}>
-            <label style={{ display: "block", fontSize: "1rem", marginBottom: "6px", color: "#555" }}>
-              {field.charAt(0).toUpperCase() + field.slice(1)}:
-            </label>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Title */}
+          <div className="relative">
+            <label className="block text-sm text-gray-400 mb-2">Title</label>
             <input
               type="text"
-              name={field}
-              value={(album as any)[field]}
+              name="title"
+              value={album.title}
+              onChange={handleChange}
+              onKeyUp={(e) => searchAlbums((e.target as HTMLInputElement).value)}
+              placeholder="Search Spotify..."
+              required
+              className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded focus:border-sky-500 focus:outline-none text-gray-100"
+            />
+            {suggestions.length > 0 && (
+              <ul
+                ref={suggestionRef}
+                className="absolute z-10 mt-1 w-full bg-gray-900 border border-gray-700 rounded shadow-lg max-h-60 overflow-y-auto"
+              >
+                {suggestions.map((a) => (
+                  <li
+                    key={a.id}
+                    onClick={() => selectAlbum(a)}
+                    className="flex items-center px-3 py-2 hover:bg-gray-800 cursor-pointer"
+                  >
+                    <img
+                      src={a.images[0]?.url || "https://via.placeholder.com/30"}
+                      alt={a.name}
+                      className="w-8 h-8 rounded mr-3"
+                    />
+                    <span className="text-gray-100">
+                      {a.name} – {a.artists[0].name}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Artist */}
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">Artist</label>
+            <input
+              type="text"
+              name="artist"
+              value={album.artist}
               onChange={handleChange}
               required
-              style={{
-                width: "100%",
-                padding: "10px",
-                border: "1px solid #ddd",
-                borderRadius: "6px",
-                fontSize: "1rem",
-                boxSizing: "border-box",
-              }}
+              className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded focus:border-sky-500 focus:outline-none text-gray-100"
             />
           </div>
-        ))} */}
 
-        <div style={{ marginBottom: "21px" }}>
-          <label style={{ display: "block", fontSize: "1rem", marginBottom: "6px", color: "#555" }}>
-            Reasoning:
-          </label>
-          <textarea
-            name="just"
-            value={album.just}
-            onChange={handleChange}
-            required
-            style={{
-              width: "100%",
-              height: "100px",
-              padding: "10px",
-              border: "1px solid #ddd",
-              borderRadius: "6px",
-              fontSize: "1rem",
-              resize: "none",
-              boxSizing: "border-box",
-            }}
-          />
+          {/* Genre */}
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">Genre</label>
+            <input
+              type="text"
+              name="genre"
+              value={album.genre}
+              onChange={handleChange}
+              className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded focus:border-sky-500 focus:outline-none text-gray-100"
+            />
+          </div>
+
+          {/* Rating */}
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">Rating (0–10)</label>
+            <input
+              type="number"
+              name="rating"
+              value={album.rating}
+              onChange={handleChange}
+              min="0"
+              max="10"
+              step="0.5"
+              className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded focus:border-sky-500 focus:outline-none text-gray-100"
+            />
+          </div>
+
+          {/* Rater */}
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">Your Name</label>
+            <input
+              type="text"
+              name="rater"
+              value={album.rater}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded focus:border-sky-500 focus:outline-none text-gray-100"
+            />
+          </div>
+
+          {/* Reasoning */}
+          <div>
+            <label className="block text-sm text-gray-400 mb-2">Reasoning</label>
+            <textarea
+              name="just"
+              value={album.just}
+              onChange={handleChange}
+              required
+              className="w-full h-28 px-4 py-3 bg-gray-900 border border-gray-700 rounded focus:border-sky-500 focus:outline-none text-gray-100 resize-none"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-sky-500 hover:bg-sky-600 text-white font-semibold py-3 rounded"
+          >
+            Submit Album
+          </button>
+        </form>
+
+        <div className="text-center mt-8">
+          <a href="/albums" className="text-sky-400 hover:text-sky-300">
+            See Album List
+          </a>
         </div>
-
-        <button
-          type="submit"
-          style={{
-            backgroundColor: "#0c6fa8",
-            color: "white",
-            fontSize: "1rem",
-            padding: "12px",
-            border: "none",
-            borderRadius: "6px",
-            cursor: "pointer",
-            width: "100%",
-          }}
-        >
-          Submit Album
-        </button>
-      </form>
-
-      <div style={{ textAlign: "center", marginTop: "25px" }}>
-        <a href="/albums" style={{ color: "#0c6fa8", textDecoration: "none", fontSize: "1rem" }}>
-          See Album List
-        </a>
       </div>
     </div>
   );
