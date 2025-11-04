@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { addAlbum, Album } from "../services/api";
+// import { addAlbum, Album } from "../services/api";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -41,7 +41,7 @@ export default function AlbumDetails() {
       setAccessToken(data.access_token);
     };
     getAccessToken();
-  }, []);
+  }, [CLIENT_ID, CLIENT_SECRET]);
 
   // Hide dropdown
   useEffect(() => {
@@ -90,7 +90,6 @@ export default function AlbumDetails() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const newAlbum: Album = await addAlbum({ ...album, rating: Number(album.rating) });
       queryClient.invalidateQueries({ queryKey: ["albums"] });
       setAlbum({ title: "", artist: "", genre: "", rating: "", rater: "", just: "" });
       setAddedCount((prev) => prev + 1);
