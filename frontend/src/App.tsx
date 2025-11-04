@@ -4,7 +4,6 @@ import {
   Routes,
   Route,
   Link,
-  // useLocation,
 } from "react-router-dom";
 
 import Home from "./components/Home";
@@ -12,8 +11,7 @@ import AlbumList from "./components/AlbumList";
 import AlbumDetails from "./components/AlbumDetails";
 import PlayAlbum from "./components/PlayAlbum";
 import ErrorPage from "./components/ErrorPage";
-import { Analytics } from "@vercel/analytics/react"
-
+import { Analytics } from "@vercel/analytics/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getAlbums } from "./services/api";
 import { Toaster } from "react-hot-toast";
@@ -21,53 +19,56 @@ import { Toaster } from "react-hot-toast";
 /**
  * Navigation bar:
  * - Fixed top header
- * - Dark theme, minimal layout
- * - Matches your Tailwind palette
+ * - Responsive design for mobile
+ * - Matches dark theme palette
  */
 function Nav() {
-  // const location = useLocation();
-  // const isHome = location.pathname === "/";
-
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/75">
-      <div className="mx-auto max-w-7xl px-6 py-4 flex items-center justify-between">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-3 flex items-center justify-between">
+        {/* Brand */}
         <Link
           to="/"
-          className="font-black tracking-tight text-white text-xl md:text-2xl"
+          className="font-black tracking-tight text-white text-lg sm:text-xl md:text-2xl"
         >
           RISHI'S<span className="text-accent">RECORDS</span>
         </Link>
-        <nav className="flex items-center gap-3">
-          {/* Albums Link */}
+
+        {/* Nav Buttons */}
+        <nav className="flex items-center gap-2 sm:gap-3">
+          {/* Albums Link (secondary button) */}
           <Link
             to="/albums"
             className="
               inline-flex items-center justify-center
               bg-gray-800
-              hover:bg-[#032570]
-              text-gray-100 text-sm font-semibold
-              px-4 py-2.5
+              hover:bg-gray-700
+              text-gray-100 font-semibold
+              text-xs sm:text-sm
+              px-2.5 sm:px-4
+              py-1.5 sm:py-2.5
               rounded-md
+              border border-gray-700
               shadow-sm
               transition-all
               duration-150
-              focus:outline-none
-              focus:ring-2 focus:ring-sky-500
+              focus:outline-none focus:ring-2 focus:ring-sky-500
             "
           >
             Albums
           </Link>
 
-
-          {/* Add Album Button */}
+          {/* Add Album Button (primary) */}
           <Link
             to="/add/1"
             className="
               inline-flex items-center justify-center
               bg-[#3b82f6]
-              hover:bg-[#032570]
-              text-white text-sm font-semibold
-              px-4 py-2.5
+              hover:bg-[#2563eb]
+              text-white font-semibold
+              text-xs sm:text-sm
+              px-2.5 sm:px-4
+              py-1.5 sm:py-2.5
               rounded-md
               border border-transparent
               shadow-sm
@@ -79,7 +80,6 @@ function Nav() {
             Rate Album
           </Link>
         </nav>
-
       </div>
     </header>
   );
