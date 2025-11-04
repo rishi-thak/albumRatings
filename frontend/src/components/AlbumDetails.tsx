@@ -110,7 +110,7 @@ export default function AlbumDetails() {
     <div className="min-h-screen bg-gray-950 text-gray-100">
       <div className="max-w-3xl mx-auto px-6 py-12">
         <h1 className="text-4xl font-black mb-8 text-white tracking-tight">
-          Add Album ({addedCount + 1}/{numAlbums || 1})
+          Add Album {/* ({addedCount + 1}/{numAlbums || 1}) */}
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
