@@ -12,6 +12,7 @@ import AlbumList from "./components/AlbumList";
 import AlbumDetails from "./components/AlbumDetails";
 import PlayAlbum from "./components/PlayAlbum";
 import ErrorPage from "./components/ErrorPage";
+import { Analytics } from "@vercel/analytics/react"
 
 import { useQueryClient } from "@tanstack/react-query";
 import { getAlbums } from "./services/api";
@@ -148,6 +149,7 @@ export default function App() {
           },
         }}
       />
+      <Analytics />
     </div>
   );
 }
