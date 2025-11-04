@@ -40,7 +40,7 @@ export default function Home() {
                 Rishi's<br />Records
               </h1>
               <p className="mt-4 text-gray-400 text-lg">
-                Your personal music collection and ratings
+                A community collection of music and ratings
               </p>
             </div>
             <Link
@@ -77,7 +77,7 @@ export default function Home() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-3xl font-black text-white tracking-tight">RECENTLY ADDED</h2>
-              <p className="text-gray-500">Your latest album additions</p>
+              <p className="text-gray-500">Our latest album additions</p>
             </div>
             <Link
               to="/albums"
@@ -173,7 +173,7 @@ export default function Home() {
               <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-accent transition-colors">
                 Browse All Albums
               </h3>
-              <p className="text-gray-500">View and manage your complete album collection</p>
+              <p className="text-gray-500">View the complete album collection</p>
             </div>
           </Link>
 
@@ -182,7 +182,7 @@ export default function Home() {
               <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-accent transition-colors">
                 Add New Album
               </h3>
-              <p className="text-gray-500">Rate and add a new album to your collection</p>
+              <p className="text-gray-500">Rate and add a new album to the collection</p>
             </div>
           </Link>
         </section>
