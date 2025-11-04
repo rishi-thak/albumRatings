@@ -45,9 +45,9 @@ export default function Home() {
             </div>
             <Link
               to="/add/1"
-              className="inline-flex items-center rounded bg-accent px-6 py-4 text-white font-bold hover:bg-[#2563eb] transition"
+              className="inline-flex items-center rounded bg-accent px-6 py-4 text-white font-bold hover:bg-[#032570] transition"
             >
-              +&nbsp;ADD ALBUM
+              +&nbsp;RATE ALBUM
             </Link>
           </div>
         </div>
