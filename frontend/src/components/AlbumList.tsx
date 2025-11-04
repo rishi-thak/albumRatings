@@ -1,253 +1,96 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useAlbums } from "../hooks/useAlbums";
-import { Album } from "../services/api";
-import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
-
+import AlbumCard from "./AlbumCard";
 
 export default function AlbumList() {
-  const { data: albums, isLoading, error } = useAlbums();
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const [popup, setPopup] = useState<{ title: string; just: string } | null>(null);
-  const [loadingText, setLoadingText] = useState("loading.");
+  const { data: albums = [], isLoading, error } = useAlbums();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("rating");
 
-  const API_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000/api/albums";
-
-  // Animate the "loading." → "loading.." → "loading..." text
-  useEffect(() => {
-    if (!isLoading) return;
-    const interval = setInterval(() => {
-      setLoadingText((prev) => {
-        if (prev === "loading.") return "loading..";
-        if (prev === "loading..") return "loading...";
-        return "loading.";
-      });
-    }, 500);
-    return () => clearInterval(interval);
-  }, [isLoading]);
-
-  // ✅ Delete album and update cache
-  const handleDelete = async (id: number) => {
-    const password = prompt("Enter password to delete album:");
-    if (!password) return;
-
-    const res = await fetch(`${API_URL}/${id}`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
+  const filtered = albums
+    .filter((album) => {
+      const q = searchQuery.toLowerCase();
+      return (
+        album.title.toLowerCase().includes(q) ||
+        album.artist.toLowerCase().includes(q) ||
+        album.genre.toLowerCase().includes(q) ||
+        album.rater.toLowerCase().includes(q)
+      );
+    })
+    .sort((a, b) => {
+      if (sortBy === "rating") return (b.rating || 0) - (a.rating || 0);
+      if (sortBy === "title") return a.title.localeCompare(b.title);
+      if (sortBy === "artist") return a.artist.localeCompare(b.artist);
+      return 0;
     });
 
-    if (res.status === 403) {
-      alert("Incorrect password.");
-      return;
-    }
-
-    queryClient.setQueryData<Album[]>(["albums"], (oldAlbums) =>
-      oldAlbums ? oldAlbums.filter((a) => a.id !== id) : []
-    );
-  };
-
-  // ✅ Render main container regardless of loading state
   return (
-    <div
-      className="container"
-      style={{
-        width: "80%",
-        margin: "50px auto",
-        backgroundColor: "#fff",
-        padding: "20px",
-        borderRadius: "8px",
-        boxShadow: "0 0 10px rgba(0, 0, 0, 0.1)",
-        minHeight: "300px",
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
-      <h1 style={{ color: "#4caf50", textAlign: "center" }}>Album List</h1>
-      <center>
-        <p>Click on an album to view more details.</p>
-      </center>
-
-      {/* Loading Spinner */}
-      {isLoading && (
-        <div
-          style={{
-            textAlign: "center",
-            marginTop: "40px",
-            fontSize: "1.5rem",
-            color: "#0c6fa8",
-            animation: "fade 1s ease-in-out infinite",
-          }}
-        >
-          {loadingText}
-        </div>
-      )}
-
-      {/* Error State */}
-      {!isLoading && error && <p style={{ textAlign: "center" }}>Failed to load albums.</p>}
-
-      {/* Albums List */}
-      {!isLoading && albums && albums.length > 0 && (
-        <>
-          {albums.map((album) => (
-            <div
-              key={album.id}
-              onClick={() => setPopup(album)}
-              style={{
-                backgroundColor: "#f9f9f9",
-                margin: "10px 0",
-                padding: "15px",
-                borderRadius: "8px",
-                boxShadow: "0 0 5px rgba(0,0,0,0.1)",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                cursor: "pointer",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center" }}>
-                <img
-                  src={album.cover_url || "https://via.placeholder.com/50"}
-                  alt="cover"
-                  style={{
-                    width: "50px",
-                    height: "50px",
-                    objectFit: "cover",
-                    marginRight: "15px",
-                  }}
-                />
-                <div>
-                  <strong>{album.title}</strong> by {album.artist}
-                  <div>Genre: {album.genre}</div>
-                  <div>Rating: {album.rating} (Rated by {album.rater})</div>
-                </div>
-              </div>
-
-              <div>
-                <button
-                  style={{
-                    border: "2px solid #ff4d4d",
-                    borderRadius: "50%",
-                    color: "#ff4d4d",
-                    background: "none",
-                    width: "32px",
-                    height: "32px",
-                    cursor: "pointer",
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(album.id);
-                  }}
-                >
-                  -
-                </button>
-
-                {album.spotify_url && (
-                  <a
-                    href={album.spotify_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      border: "2px solid #4caf50",
-                      borderRadius: "50%",
-                      color: "#4caf50",
-                      marginLeft: "10px",
-                      padding: "3px 8px",
-                      textDecoration: "none",
-                    }}
-                  >
-                    ▶
-                  </a>
-                )}
-              </div>
-              
+    <div className="min-h-screen bg-gray-950 text-gray-100">
+      {/* Header */}
+      <header className="border-b border-gray-800 bg-gray-900">
+        <div className="max-w-7xl mx-auto px-6 py-10">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div>
+              <h1 className="text-4xl md:text-5xl font-black text-white mb-2 tracking-tight">
+                ALBUMS
+              </h1>
+              <p className="text-gray-400">
+                {filtered.length} {filtered.length === 1 ? "album" : "albums"}
+              </p>
             </div>
-            
-          ))}
-          
-          <button
-            onClick={() => navigate("/")}
-            style={{
-              position: "fixed",
-              bottom: "20px",         // space above taskbar
-              left: "50%",
-              transform: "translateX(-50%)", // center horizontally
-              backgroundColor: "#0c6fa8",
-              color: "white",
-              border: "none",
-              padding: "10px 15px",
-              borderRadius: "4px",
-              cursor: "pointer",
-              width: "80%",
-              maxWidth: "600px",      // optional for nice scaling
-              boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
-              zIndex: 2000,           // ensures it's above other elements
-            }}
-          >
-            Go Home
-          </button>
 
-
-        </>
-        
-      )}
-      
-
-      {/* No Albums */}
-      {!isLoading && albums && albums.length === 0 && (
-        <p style={{ textAlign: "center" }}>No albums found.</p>
-      )}
-
-      {popup && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            background: "rgba(0,0,0,0.5)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 1000,
-          }}
-          onClick={() => setPopup(null)} // closes only when you click *outside*
-        >
-          <div
-            style={{
-              background: "white",
-              padding: "20px",
-              borderRadius: "8px",
-              boxShadow: "0 0 10px rgba(0,0,0,0.2)",
-              maxWidth: "500px",
-              width: "90%",
-              position: "relative",
-            }}
-            onClick={(e) => e.stopPropagation()} // ⛔ stop click from bubbling up
-          >
-            <h2>{popup.title}</h2>
-            <p>{popup.just}</p>
-            <button
-              style={{
-                marginTop: "10px",
-                background: "#0c6fa8",
-                color: "white",
-                border: "none",
-                padding: "8px 12px",
-                borderRadius: "4px",
-                cursor: "pointer",
-              }}
-              onClick={() => setPopup(null)}
-            >
-              Close
-            </button>
+            <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+              <input
+                type="text"
+                placeholder="Search albums, artists, genres..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full md:w-64 px-4 py-2 bg-gray-800 border border-gray-700 rounded text-gray-100 placeholder-gray-500 focus:outline-none focus:border-sky-500"
+              />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-3 py-2 bg-gray-800 border border-gray-700 rounded text-gray-100 focus:outline-none focus:border-sky-500"
+              >
+                <option value="rating">Sort by Rating</option>
+                <option value="title">Sort by Title</option>
+                <option value="artist">Sort by Artist</option>
+              </select>
+            </div>
           </div>
         </div>
-      )}
-      
+      </header>
 
+      {/* Grid */}
+      <main className="max-w-7xl mx-auto px-6 py-12">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-24">
+            <div className="h-12 w-12 rounded-full border-4 border-sky-500 border-t-transparent animate-spin" />
+          </div>
+        ) : error ? (
+          <p className="text-center text-gray-400">Failed to load albums.</p>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-24">
+            <p className="text-gray-400 text-lg mb-4">
+              {searchQuery ? "No albums found." : "No albums yet."}
+            </p>
+            {!searchQuery && (
+              <a
+                href="/add/1"
+                className="inline-block bg-sky-500 hover:bg-sky-600 text-white px-6 py-3 rounded font-semibold"
+              >
+                Add your first album
+              </a>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filtered.map((album) => (
+              <AlbumCard key={album.id} album={album} />
+            ))}
+          </div>
+        )}
+      </main>
     </div>
   );
 }
