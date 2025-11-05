@@ -23,6 +23,7 @@ export default function AlbumDetails() {
   const navigate = useNavigate();
   const { numAlbums } = useParams();
   const [addedCount, setAddedCount] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const CLIENT_ID =
     process.env.REACT_APP_SPOTIFY_CLIENT_ID || "50237c828d5c4d8e99e85b62380cf95e";
@@ -127,6 +128,8 @@ export default function AlbumDetails() {
   // ✅ Submit form (add or re-add)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
     const payload = {
       ...album,
@@ -139,7 +142,10 @@ export default function AlbumDetails() {
       // --- If editing ---
       if (albumToEdit) {
         const password = prompt("Enter admin password to edit album:");
-        if (!password) return toast("Edit cancelled.");
+        if (!password) {
+          setIsSubmitting(false);
+          return toast("Edit cancelled.");
+        }
 
         toast.loading("Updating album...", { id: "edit" });
 
@@ -156,12 +162,14 @@ export default function AlbumDetails() {
         if (deleteRes.status === 403) {
           toast.dismiss("edit");
           toast.error("Incorrect password. Album not updated.");
+          setIsSubmitting(false);
           return;
         }
 
         if (!deleteRes.ok) {
           toast.dismiss("edit");
           toast.error("Failed to delete old album.");
+          setIsSubmitting(false);
           return;
         }
 
@@ -199,6 +207,8 @@ export default function AlbumDetails() {
     } catch (err) {
       console.error("Failed to add/update album:", err);
       toast.error("Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -206,7 +216,7 @@ export default function AlbumDetails() {
     <div className="min-h-screen bg-[#0a0a0a] text-gray-100">
       <div className="max-w-3xl mx-auto px-6 py-12">
         <h1 className="text-4xl font-black mb-8 text-white tracking-tight">
-          {albumToEdit ? "Edit Album" : `Add Album`}
+          {albumToEdit ? "Edit Album" : "Add Album"}
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -313,11 +323,24 @@ export default function AlbumDetails() {
             />
           </div>
 
+          {/* Submit Button */}
           <button
             type="submit"
-            className="w-full bg-[#3b82f6] hover:bg-[#2563eb] text-white font-semibold py-3 rounded"
+            disabled={isSubmitting}
+            className={`
+              w-full font-semibold py-3 rounded transition
+              ${isSubmitting
+                ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+                : "bg-[#3b82f6] hover:bg-[#2563eb] text-white"}
+            `}
           >
-            {albumToEdit ? "Save Changes" : "Submit Album"}
+            {isSubmitting
+              ? albumToEdit
+                ? "Saving..."
+                : "Submitting..."
+              : albumToEdit
+              ? "Save Changes"
+              : "Submit Album"}
           </button>
         </form>
 
