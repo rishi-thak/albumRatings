@@ -4,6 +4,8 @@ import { useAlbums } from "../hooks/useAlbums";
 import { getSpotifyInfo } from "../services/api";
 import { Album } from "../services/api";
 import toast from "react-hot-toast";
+import { useQueryClient } from "@tanstack/react-query";
+
 
 // Use the same API_BASE your other services use
 const API_BASE = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000/api/albums";
@@ -78,38 +80,44 @@ export default function PlayAlbum() {
     navigate("/add/1", { state: { albumToEdit: merged } });
   };
 
+  const queryClient = useQueryClient();
   const handleDelete = async () => {
-    if (!numericId) return;
-    const password = prompt("Enter admin password to delete:");
-    if (!password) return;
+  if (!numericId) return;
+  const password = prompt("Enter admin password to delete:");
+  if (!password) return;
 
-    try {
-      toast.loading("Deleting album...", { id: "del" });
-      const res = await fetch(`${API_BASE}/${numericId}`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
-      });
+  try {
+    toast.loading("Deleting album...", { id: "del" });
+    const res = await fetch(`${API_BASE}/${numericId}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
 
-      if (res.status === 403) {
-        toast.dismiss("del");
-        toast.error("Incorrect admin password.");
-        return;
-      }
-      if (!res.ok) {
-        toast.dismiss("del");
-        toast.error("Failed to delete album.");
-        return;
-      }
-
+    if (res.status === 403) {
       toast.dismiss("del");
-      toast.success("Album deleted.");
-      navigate("/albums");
-    } catch (e) {
-      toast.dismiss("del");
-      toast.error("Network error deleting album.");
+      toast.error("Incorrect admin password.");
+      return;
     }
-  };
+    if (!res.ok) {
+      toast.dismiss("del");
+      toast.error("Failed to delete album.");
+      return;
+    }
+
+    toast.dismiss("del");
+    toast.success("Album deleted.");
+
+    // ✅ Invalidate React Query cache so album list refetches
+    queryClient.invalidateQueries({ queryKey: ["albums"] });
+
+    // Optionally, navigate after cache refresh
+    navigate("/albums");
+  } catch (e) {
+    toast.dismiss("del");
+    toast.error("Network error deleting album.");
+  }
+};
 
   if (isLoading) {
     return (
