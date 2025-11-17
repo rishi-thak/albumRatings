@@ -24,6 +24,7 @@ export default function AlbumDetails() {
   const { numAlbums } = useParams();
   const [addedCount, setAddedCount] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedFromSpotify, setSelectedFromSpotify] = useState(false);
 
   const CLIENT_ID =
     process.env.REACT_APP_SPOTIFY_CLIENT_ID || "50237c828d5c4d8e99e85b62380cf95e";
@@ -82,7 +83,12 @@ export default function AlbumDetails() {
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name } = e.target;
     setAlbum({ ...album, [e.target.name]: e.target.value });
+
+    if (name === "title") {
+      setSelectedFromSpotify(false);
+  }
   };
 
   // ✅ Spotify search
@@ -119,6 +125,8 @@ export default function AlbumDetails() {
         spotify_url: albumItem.external_urls.spotify || "",
       });
 
+      setSelectedFromSpotify(true);
+
       setSuggestions([]);
     } catch (err) {
       console.error("Failed to fetch artist genres:", err);
@@ -128,8 +136,14 @@ export default function AlbumDetails() {
   // ✅ Submit form (add or re-add)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!selectedFromSpotify) {
+      toast.error("Please select an album from Spotify before submitting.");
+      return;
+    }
+
     if (isSubmitting) return;
-    setIsSubmitting(true);
+      setIsSubmitting(true);
 
     const payload = {
       ...album,
@@ -229,7 +243,7 @@ export default function AlbumDetails() {
               value={album.title}
               onChange={handleChange}
               onKeyUp={(e) => searchAlbums((e.target as HTMLInputElement).value)}
-              placeholder="Search Spotify..."
+              placeholder="Type artist name, album title to search Spotify..."
               required
               className="w-full px-4 py-3 bg-[#111] border border-[#222] rounded focus:border-[#3b82f6] focus:outline-none text-gray-100"
             />
@@ -326,10 +340,10 @@ export default function AlbumDetails() {
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !selectedFromSpotify}
             className={`
               w-full font-semibold py-3 rounded transition
-              ${isSubmitting
+              ${isSubmitting || !selectedFromSpotify
                 ? "bg-gray-700 text-gray-400 cursor-not-allowed"
                 : "bg-[#3b82f6] hover:bg-[#2563eb] text-white"}
             `}
