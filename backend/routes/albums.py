@@ -75,6 +75,57 @@ def delete_album(album_id):
         print("❌ Error deleting album:", e)
         return jsonify({"error": str(e)}), 500
 
+# ------------------------------
+# UPDATE EXISTING ALBUM
+# ------------------------------
+@bp.route("/<int:album_id>", methods=["PUT"])
+def update_album(album_id):
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "Missing JSON body"}), 400
+
+    password = data.get("password")
+    if password != os.getenv("ADMIN_PASSWORD", "rishi123"):
+        return jsonify({"error": "Invalid password"}), 403
+
+    # Extract fields from payload
+    title = data.get("title", "").strip().title()
+    artist = data.get("artist", "").strip().title()
+    genre = data.get("genre", "").strip().title()
+    rating = float(data.get("rating", 0))
+    rater = data.get("rater", "").strip().title()
+    just = data.get("just", "").strip()
+
+    # Optionally refresh Spotify info if empty or changed
+    client_id = os.getenv("SPOTIFY_CLIENT_ID")
+    client_secret = os.getenv("SPOTIFY_CLIENT_SECRET")
+    cover_url = data.get("cover_url")
+    spotify_url = data.get("spotify_url")
+
+    if not cover_url or not spotify_url:
+        try:
+            cover_url, spotify_url = fetch_album_cover(title, artist, client_id, client_secret)
+        except Exception as e:
+            print("⚠️ Failed to refresh Spotify info:", e)
+
+    try:
+        update_fields = {
+            "title": title,
+            "artist": artist,
+            "genre": genre,
+            "rating": rating,
+            "rater": rater,
+            "just": just,
+            "cover_url": cover_url,
+            "spotify_url": spotify_url,
+        }
+
+        supabase.table("albums").update(update_fields).eq("id", album_id).execute()
+        return jsonify({"message": "Album updated successfully"}), 200
+
+    except Exception as e:
+        print("❌ Error updating album:", e)
+        return jsonify({"error": str(e)}), 500
 
 # ------------------------------
 # GET SINGLE ALBUM SPOTIFY INFO

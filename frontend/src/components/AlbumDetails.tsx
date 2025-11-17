@@ -163,35 +163,29 @@ export default function AlbumDetails() {
 
         toast.loading("Updating album...", { id: "edit" });
 
-        // 1️⃣ Delete old entry
-        const deleteRes = await fetch(
-          `http://127.0.0.1:8000/api/albums/${albumToEdit.id}`,
-          {
-            method: "DELETE",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ password }),
-          }
-        );
+        const res = await fetch(`http://127.0.0.1:8000/api/albums/${albumToEdit.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...payload, password }),
+        });
 
-        if (deleteRes.status === 403) {
+        if (res.status === 403) {
           toast.dismiss("edit");
           toast.error("Incorrect password. Album not updated.");
           setIsSubmitting(false);
           return;
         }
 
-        if (!deleteRes.ok) {
+        if (!res.ok) {
           toast.dismiss("edit");
-          toast.error("Failed to delete old album.");
+          toast.error("Failed to update album.");
           setIsSubmitting(false);
           return;
         }
 
-        // 2️⃣ Re-add updated album
-        await addAlbum(payload as Album);
-        queryClient.invalidateQueries({ queryKey: ["albums"] });
         toast.dismiss("edit");
         toast.success("Album updated successfully!");
+        queryClient.invalidateQueries({ queryKey: ["albums"] });
         navigate("/albums");
         return;
       }

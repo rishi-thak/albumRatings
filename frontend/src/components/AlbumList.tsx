@@ -95,7 +95,7 @@ export default function AlbumList() {
                   <option value="rating">Sort by Rating</option>
                   <option value="title">Sort by Title</option>
                   <option value="artist">Sort by Artist</option>
-                  <option value="time">Sort by Recently Added</option>
+                  <option value="time">Sort by Recency</option>
                 </select>
 
                 {/* ▼ arrow icon */}
