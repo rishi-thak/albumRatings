@@ -23,6 +23,7 @@ export default function AlbumList() {
       if (sortBy === "rating") return (b.rating || 0) - (a.rating || 0);
       if (sortBy === "title") return a.title.localeCompare(b.title);
       if (sortBy === "artist") return a.artist.localeCompare(b.artist);
+      if (sortBy === "time") return (b.id || 0) - (a.id || 0);
       return 0;
     });
 
@@ -94,6 +95,7 @@ export default function AlbumList() {
                   <option value="rating">Sort by Rating</option>
                   <option value="title">Sort by Title</option>
                   <option value="artist">Sort by Artist</option>
+                  <option value="time">Sort by Recently Added</option>
                 </select>
 
                 {/* ▼ arrow icon */}
