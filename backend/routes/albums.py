@@ -1,7 +1,8 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, Response
 from database import supabase
 from utils.spotify import fetch_album_cover
 import os
+import json
 
 bp = Blueprint("albums", __name__, url_prefix="/api/albums")
 
@@ -12,9 +13,25 @@ bp = Blueprint("albums", __name__, url_prefix="/api/albums")
 @bp.route("/", methods=["GET"])
 def get_albums():
     try:
-        response = supabase.table("albums").select("*").execute()
-        return jsonify(response.data or [])
+        result = supabase.table("albums").select("*").execute()
+
+        # Log the result structure so you can see exactly what’s coming back
+        print("Supabase raw result:", result)
+
+        # Safety check in case result has an error field
+        if getattr(result, "error", None):
+            print("Supabase error:", result.error)
+            return jsonify({"error": str(result.error)}), 500
+
+        # Use safe serialization to handle datetime, Decimal, etc.
+        return Response(
+            json.dumps(result.data or [], default=str),
+            mimetype="application/json"
+        )
+
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         print("❌ Error fetching albums:", e)
         return jsonify({"error": str(e)}), 500
 
