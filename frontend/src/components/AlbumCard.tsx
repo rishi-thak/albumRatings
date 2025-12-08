@@ -27,13 +27,19 @@ export default function AlbumCard({ album }: { album: any }) {
             </div>
           )}
 
-          {album.rating && (
+          {/* Rating Badge */}
+          {(album.averageRating !== undefined || album.rating !== undefined) && (
             <div
               className={`absolute top-3 right-3 ${getRatingColor(
-                album.rating
+                album.averageRating ?? album.rating
               )} text-white text-sm font-semibold px-3 py-1 rounded`}
             >
-              {album.rating}/10
+              {typeof album.averageRating === "number"
+                ? album.averageRating % 1 === 0
+                  ? album.averageRating
+                  : album.averageRating.toFixed(1)
+                : album.rating}
+              /10
             </div>
           )}
 
@@ -75,9 +81,17 @@ export default function AlbumCard({ album }: { album: any }) {
             </div>
           )}
 
-          {album.rater && (
-            <p className="text-xs text-gray-500">
-              Rated by <span className="font-medium text-gray-300">{album.rater}</span>
+          {/* Raters */}
+          {(album.raters?.length > 0 || album.rater) && (
+            <p className="text-xs text-gray-500 line-clamp-1">
+              Rated by{" "}
+              <span className="font-medium text-gray-300">
+                {album.raters
+                  ? album.raters.length > 2
+                    ? `${album.raters.slice(0, 2).join(", ")} + ${album.raters.length - 2} more`
+                    : album.raters.join(", ")
+                  : album.rater}
+              </span>
             </p>
           )}
         </div>

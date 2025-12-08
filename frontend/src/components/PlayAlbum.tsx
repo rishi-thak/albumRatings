@@ -33,6 +33,21 @@ export default function PlayAlbum() {
       .catch(() => setCoverInfo({}));
   }, [numericId]);
 
+  // Create a derived list of ALL reviews for this album
+  const relatedReviews = useMemo(() => {
+    if (!album || !albums) return [];
+    const keyTitle = album.title.trim().toLowerCase();
+    const keyArtist = album.artist.trim().toLowerCase();
+
+    return albums.filter(
+      (a) =>
+        a.title.trim().toLowerCase() === keyTitle &&
+        a.artist.trim().toLowerCase() === keyArtist
+    );
+  }, [album, albums]);
+
+
+
   const merged = useMemo(() => {
     if (!album) return null;
     return {
@@ -41,6 +56,175 @@ export default function PlayAlbum() {
       spotify_url: coverInfo?.spotify_url ?? album.spotify_url,
     };
   }, [album, coverInfo]);
+
+  // Carousel State
+  const [reviewIndex, setReviewIndex] = useState(0);
+
+  // Ensure index is valid when reviews change
+  useEffect(() => {
+    if (reviewIndex >= relatedReviews.length) {
+      setReviewIndex(0);
+    }
+  }, [relatedReviews, reviewIndex]);
+
+  const currentReview = relatedReviews[reviewIndex];
+
+  // Carousel Navigation
+  const handlePrevReview = () => {
+    setReviewIndex((prev) => (prev === 0 ? relatedReviews.length - 1 : prev - 1));
+  };
+  const handleNextReview = () => {
+    setReviewIndex((prev) => (prev === relatedReviews.length - 1 ? 0 : prev + 1));
+  };
+
+  // Calculate Average Rating
+  const averageRating = useMemo(() => {
+    if (relatedReviews.length === 0) return 0;
+    const sum = relatedReviews.reduce((acc, curr) => acc + Number(curr.rating), 0);
+    return sum / relatedReviews.length;
+  }, [relatedReviews]);
+
+  // Rater list
+  const ratersList = useMemo(() => {
+    const raters = Array.from(new Set(relatedReviews.map((r) => r.rater)));
+    if (raters.length > 3) {
+      return `${raters.slice(0, 3).join(", ")} + ${raters.length - 3} more`;
+    }
+    return raters.join(", ");
+  }, [relatedReviews]);
+
+  // Helper to select an entry for Edit/Delete using a custom Toast
+  const selectEntry = (action: "edit" | "delete"): Promise<Album | null> => {
+    if (relatedReviews.length === 1) return Promise.resolve(relatedReviews[0]);
+
+    return new Promise((resolve) => {
+      toast.custom(
+        (t) => (
+          <div className="bg-[#111] border border-[#333] p-4 rounded-lg shadow-xl max-w-sm w-full animate-in fade-in zoom-in duration-200">
+            <h3 className="text-white font-bold mb-3">Which entry to {action}?</h3>
+            <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
+              {relatedReviews.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => {
+                    toast.dismiss(t.id);
+                    resolve(r);
+                  }}
+                  className="w-full text-left px-3 py-2 rounded hover:bg-[#222] text-gray-300 transition flex justify-between items-center group"
+                >
+                  <span className="font-medium group-hover:text-white transition-colors">{r.rater}</span>
+                  <span
+                    className={`${getRatingColor(
+                      r.rating
+                    )} text-xs px-2 py-0.5 rounded text-white font-bold ml-2`}
+                  >
+                    {r.rating}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                resolve(null);
+              }}
+              className="w-full mt-3 py-2 text-xs text-gray-500 hover:text-white transition uppercase tracking-wider font-medium border-t border-[#222]"
+            >
+              Cancel
+            </button>
+          </div>
+        ),
+        { duration: Infinity, id: "selection-toast" }
+      );
+    });
+  };
+
+  const handleEdit = async () => {
+    if (!merged) return;
+
+    // 1. Auth First
+    const ok = await verifyPasswordForEdit();
+    if (!ok) return;
+
+    // 2. Select Entry (Visual Popup)
+    const targetAlbum = await selectEntry("edit");
+    if (!targetAlbum) return;
+
+    // Merge spotify info for the edit page
+    const fullTarget = {
+      ...targetAlbum,
+      cover_url: targetAlbum.cover_url || merged.cover_url,
+      spotify_url: targetAlbum.spotify_url || merged.spotify_url,
+    };
+
+    toast.success("Access granted.");
+    navigate(`/add/1`, { state: { albumToEdit: fullTarget } });
+  };
+
+  const queryClient = useQueryClient();
+  const handleDelete = async () => {
+    // 1. Prompt Password
+    const passwordInput = prompt("Enter admin password to delete:");
+    if (!passwordInput) return;
+
+    // 2. Verify Password (using a dummy delete call)
+    try {
+      const checkRes = await fetch(`${API_BASE}/0`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: passwordInput }),
+      });
+      if (checkRes.status === 403) {
+        toast.error("Incorrect admin password.");
+        return;
+      }
+      // If checkRes.ok is false for other reasons (e.g., server error),
+      // we'll let the actual delete call handle it or just proceed.
+      // For now, only explicit 403 is a pre-check failure.
+    } catch {
+      // Network error during password check, proceed cautiously or inform user.
+      // For now, we'll let the main delete catch block handle network issues.
+    }
+
+    // 3. Select Entry
+    const targetAlbum = await selectEntry("delete");
+    if (!targetAlbum) return;
+
+    // 4. Execute Delete
+    try {
+      toast.loading("Deleting review...", { id: "del" });
+      const res = await fetch(`${API_BASE}/${targetAlbum.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: passwordInput }),
+      });
+
+      if (res.status === 403) {
+        toast.dismiss("del");
+        toast.error("Incorrect admin password.");
+        return;
+      }
+      if (!res.ok) {
+        toast.dismiss("del");
+        toast.error("Failed to delete review.");
+        return;
+      }
+
+      toast.dismiss("del");
+      toast.success("Review deleted.");
+
+      // ✅ Invalidate React Query cache so album list refetches
+      queryClient.invalidateQueries({ queryKey: ["albums"] });
+
+      // If it was the last review, go back. If not, stay here (auto-update via cache)
+      if (relatedReviews.length <= 1) {
+        navigate("/albums");
+      }
+    } catch (e) {
+      toast.dismiss("del");
+      toast.error("Network error deleting review.");
+    }
+  };
 
   const verifyPasswordForEdit = async (): Promise<boolean> => {
     const password = prompt("Enter admin password to edit:");
@@ -71,53 +255,16 @@ export default function PlayAlbum() {
     }
   };
 
-  const handleEdit = async () => {
-    if (!merged) return;
-    const ok = await verifyPasswordForEdit();
-    if (!ok) return;
-    toast.success("Access granted.");
-    // navigate with album data so AlbumDetails can prefill
-    navigate("/add/1", { state: { albumToEdit: merged } });
+
+  // rating badge color helper
+  const getRatingColor = (r: number) => {
+    if (r >= 9) return "bg-emerald-500";
+    if (r >= 7) return "bg-sky-500";
+    if (r >= 5) return "bg-amber-500";
+    return "bg-red-500";
   };
 
-  const queryClient = useQueryClient();
-  const handleDelete = async () => {
-  if (!numericId) return;
-  const password = prompt("Enter admin password to delete:");
-  if (!password) return;
-
-  try {
-    toast.loading("Deleting album...", { id: "del" });
-    const res = await fetch(`${API_BASE}/${numericId}`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
-    });
-
-    if (res.status === 403) {
-      toast.dismiss("del");
-      toast.error("Incorrect admin password.");
-      return;
-    }
-    if (!res.ok) {
-      toast.dismiss("del");
-      toast.error("Failed to delete album.");
-      return;
-    }
-
-    toast.dismiss("del");
-    toast.success("Album deleted.");
-
-    // ✅ Invalidate React Query cache so album list refetches
-    queryClient.invalidateQueries({ queryKey: ["albums"] });
-
-    // Optionally, navigate after cache refresh
-    navigate("/albums");
-  } catch (e) {
-    toast.dismiss("del");
-    toast.error("Network error deleting album.");
-  }
-};
+  const avgRatingColor = getRatingColor(averageRating);
 
   if (isLoading) {
     return (
@@ -141,26 +288,13 @@ export default function PlayAlbum() {
     );
   }
 
-  // rating badge color
-  const rating = Number(merged.rating);
-  const ratingColor =
-    Number.isFinite(rating) && rating >= 0
-      ? rating >= 9
-        ? "bg-emerald-500"
-        : rating >= 7
-        ? "bg-blue-500"
-        : rating >= 5
-        ? "bg-amber-500"
-        : "bg-red-500"
-      : "bg-gray-600";
-
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-gray-100">
       {/* Header */}
       <div className="border-b border-[#222] bg-[#111]">
         <div className="max-w-7xl mx-auto px-6 py-6">
           <button
-            onClick={() => navigate("/albums")}
+            onClick={() => navigate("/")}
             className="rounded bg-gray-100 text-gray-900 px-4 py-2 text-sm font-medium hover:bg-gray-200"
           >
             ← BACK
@@ -171,53 +305,63 @@ export default function PlayAlbum() {
       {/* Content */}
       <div className="max-w-7xl mx-auto px-6 py-12 grid md:grid-cols-2 gap-12">
         {/* Cover */}
-        <div className="aspect-square bg-[#111] border border-[#222] overflow-hidden">
-          {merged.cover_url ? (
-            <img src={merged.cover_url} alt={merged.title} className="w-full h-full object-cover" />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-gray-600 text-7xl">
-              ♪
-            </div>
+        <div className="space-y-6">
+          <div className="aspect-square bg-[#111] border border-[#222] overflow-hidden rounded-lg shadow-2xl">
+            {merged.cover_url ? (
+              <img src={merged.cover_url} alt={merged.title} className="w-full h-full object-cover" />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-gray-600 text-7xl">
+                ♪
+              </div>
+            )}
+          </div>
+
+          {/* Spotify button */}
+          {merged.spotify_url && (
+            <a href={merged.spotify_url} target="_blank" rel="noopener noreferrer" className="block">
+              <button className="w-full bg-[#1DB954] hover:bg-[#1ed760] text-black font-bold py-4 rounded transition flex items-center justify-center gap-2">
+                <span>PLAY ON SPOTIFY</span>
+              </button>
+            </a>
           )}
         </div>
 
-        {/* Info */}
-        <div className="space-y-8">
-          {/* Title / Artist */}
-          <div>
-            <h1 className="text-5xl md:text-6xl font-black text-white mb-3 tracking-tight">
+        {/* Info & Reviews */}
+        <div className="flex flex-col h-full">
+          {/* Header Info */}
+          <div className="mb-8">
+            <h1 className="text-5xl md:text-6xl font-black text-white mb-3 tracking-tight leading-none">
               {merged.title}
             </h1>
-            <p className="text-2xl text-gray-400">{merged.artist}</p>
+            <p className="text-2xl text-gray-400 font-light">{merged.artist}</p>
           </div>
 
-          {/* Rating + Rater */}
-          {Number.isFinite(rating) && (
-            <div className="flex items-center gap-4">
-              <div className={`${ratingColor} px-6 py-3 inline-block`}>
-                <span className="text-3xl font-black text-white">{rating}</span>
-                <span className="text-white text-lg font-bold ml-1">/10</span>
-              </div>
-              {merged.rater && (
-                <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-wider">Rated by</p>
-                  <p className="text-white font-medium text-lg">{merged.rater}</p>
-                </div>
-              )}
+          {/* Average Rating Block */}
+          <div className="flex items-center gap-6 mb-8">
+            <div className={`${avgRatingColor} px-6 py-3 rounded-lg shadow-lg`}>
+              <span className="text-4xl font-black text-white">
+                {averageRating % 1 === 0 ? averageRating : averageRating.toFixed(1)}
+              </span>
+              <span className="text-white/80 text-xl font-bold ml-1">/10</span>
             </div>
-          )}
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Rated by</p>
+              <p className="text-white font-medium text-lg leading-tight">
+                {ratersList}
+              </p>
+            </div>
+          </div>
 
           {/* Genre tags */}
           {merged.genre && (
-            <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">Genre</p>
+            <div className="mb-10">
               <div className="flex flex-wrap gap-2">
                 {String(merged.genre)
                   .split(",")
                   .map((g, i) => (
                     <span
                       key={i}
-                      className="px-4 py-2 bg-[#111] border border-[#222] text-gray-300 font-medium uppercase tracking-wider text-sm"
+                      className="px-3 py-1 bg-[#1a1a1a] border border-[#333] text-gray-300 text-xs font-medium uppercase tracking-wider rounded"
                     >
                       {g.trim()}
                     </span>
@@ -226,38 +370,79 @@ export default function PlayAlbum() {
             </div>
           )}
 
-          {/* Reasoning box */}
-          {merged.just && (
-            <div className="bg-[#111] border border-[#222] p-6">
-              <p className="text-xs text-gray-500 uppercase tracking-wider mb-3">Reasoning</p>
-              <p className="text-gray-300 leading-relaxed text-lg whitespace-pre-wrap">{merged.just}</p>
-            </div>
-          )}
+          {/* Reviews Carousel */}
+          <div className="flex-1 flex flex-col pt-6 border-t border-[#222]">
+            {currentReview ? (
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm text-gray-500 uppercase tracking-wider font-bold flex items-center gap-2">
+                    REASONING
+                    {relatedReviews.length > 1 && (
+                      <>
+                        - BY <span className="text-sky-500">{currentReview.rater.toUpperCase()}</span>
+                      </>
+                    )}
+                  </h3>
+                  {relatedReviews.length > 1 && (
+                    <span className={`text-xs font-bold px-3 py-1 rounded ${getRatingColor(currentReview.rating)} text-white`}>
+                      Rated {currentReview.rating}/10
+                    </span>
+                  )}
+                </div>
 
-          {/* Spotify button */}
-          {merged.spotify_url && (
-            <a href={merged.spotify_url} target="_blank" rel="noopener noreferrer" className="block">
-              <button className="w-full bg-[#1DB954] hover:bg-[#1ed760] text-black font-bold py-4 rounded transition">
-                ▶ PLAY ON SPOTIFY
+                <div className="flex-1 bg-[#111] border border-[#222] p-6 rounded-lg mb-6 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-sky-500"></div>
+                  <div className="h-full overflow-y-auto custom-scrollbar pr-2">
+                    <p className="text-gray-300 text-lg leading-relaxed whitespace-pre-wrap">
+                      {currentReview.just || <span className="italic text-gray-600">No written justification.</span>}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Carousel Controls */}
+                {relatedReviews.length > 1 && (
+                  <div className="flex items-center justify-center gap-4 mb-6">
+                    <button
+                      onClick={handlePrevReview}
+                      className="p-2 rounded-full bg-gray-800 hover:bg-gray-700 text-white transition"
+                      title="Previous Review"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+                    </button>
+                    <span className="text-sm text-gray-500 font-medium">
+                      {reviewIndex + 1} / {relatedReviews.length}
+                    </span>
+                    <button
+                      onClick={handleNextReview}
+                      className="p-2 rounded-full bg-gray-800 hover:bg-gray-700 text-white transition"
+                      title="Next Review"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-gray-500 italic">No reviews loaded.</p>
+            )}
+
+            {/* Actions */}
+            <div className="flex flex-wrap gap-4 mt-auto">
+              <button
+                onClick={handleEdit}
+                className="flex-1 border border-[#333] text-gray-300 hover:text-white hover:bg-[#1a1a1a] py-4 rounded font-medium transition"
+              >
+                ✏️ EDIT ENTRY
               </button>
-            </a>
-          )}
-
-          {/* Actions */}
-          <div className="flex flex-wrap gap-4 pt-6 border-t border-[#222]">
-            <button
-              onClick={handleEdit}
-              className="flex-1 border border-[#333] text-gray-300 hover:text-white hover:bg-[#1a1a1a] py-4 rounded font-medium transition"
-            >
-              ✏️ EDIT
-            </button>
-            <button
-              onClick={handleDelete}
-              className="flex-1 border border-red-900/30 text-red-500 hover:text-red-400 hover:bg-red-950/30 py-4 rounded font-medium transition"
-            >
-              🗑 DELETE
-            </button>
+              <button
+                onClick={handleDelete}
+                className="flex-1 border border-red-900/30 text-red-500 hover:text-red-400 hover:bg-red-950/30 py-4 rounded font-medium transition"
+              >
+                🗑 DELETE ENTRY
+              </button>
+            </div>
           </div>
+
         </div>
       </div>
     </div>

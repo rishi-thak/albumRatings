@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useAlbums } from "../hooks/useAlbums";
 import AlbumCard from "./AlbumCard";
 import { Grid3X3 } from "lucide-react";
@@ -9,21 +9,90 @@ export default function AlbumList() {
   const [sortBy, setSortBy] = useState("rating");
   const [gridMode, setGridMode] = useState<"compact" | "default" | "spacious">("default");
 
-  const filtered = albums
-    .filter((album) => {
+  // 1. Group albums by title and artist, calculate average rating, and collect all raters
+  const groupedAlbums = useMemo(() => {
+    const groups: {
+      [key: string]: {
+        id: number;
+        title: string;
+        artist: string;
+        genre: string;
+        cover_url?: string;
+        spotify_url?: string;
+        reviews: typeof albums;
+        averageRating: number;
+        reviewCount: number;
+        raters: string[];
+        rater: string;
+        just: string;
+      };
+    } = {};
+
+    albums.forEach((album) => {
+      const key = `${album.title}-${album.artist}`;
+      if (!groups[key]) {
+        groups[key] = {
+          id: album.id, // Use the first encounter's ID as the group ID initially
+          title: album.title,
+          artist: album.artist,
+          genre: album.genre,
+          cover_url: album.cover_url,
+          spotify_url: album.spotify_url,
+          reviews: [],
+          averageRating: 0,
+          reviewCount: 0,
+          raters: [], // Initialize raters array
+          rater: "",
+          just: ""
+        };
+      }
+
+      // Keep the latest ID / cover info if available
+      if (album.id > groups[key].id) {
+        groups[key].id = album.id;
+      }
+      if (album.cover_url) groups[key].cover_url = album.cover_url;
+      if (album.spotify_url) groups[key].spotify_url = album.spotify_url;
+
+      groups[key].reviews.push(album);
+      groups[key].averageRating += album.rating || 0;
+      groups[key].reviewCount++;
+      groups[key].raters.push(album.rater); // Add rater to the array
+    });
+
+    // Finalize averages and unique raters
+    return Object.values(groups).map((g) => {
+      g.averageRating = g.averageRating / g.reviewCount;
+      // Unique raters just in case
+      g.raters = Array.from(new Set(g.raters));
+      return g;
+    });
+  }, [albums]);
+
+  // 2. Filter & Sort the groups
+  const filtered = groupedAlbums
+    .filter((group) => {
       const q = searchQuery.toLowerCase();
-      return (
-        album.title.toLowerCase().includes(q) ||
-        album.artist.toLowerCase().includes(q) ||
-        album.genre.toLowerCase().includes(q) ||
-        album.rater.toLowerCase().includes(q)
-      );
+      // Check title, artist, genre
+      if (
+        group.title.toLowerCase().includes(q) ||
+        group.artist.toLowerCase().includes(q) ||
+        group.genre.toLowerCase().includes(q)
+      ) {
+        return true;
+      }
+      // Check if ANY rater matches
+      if (group.raters.some(r => r.toLowerCase().includes(q))) return true;
+      return false;
     })
     .sort((a, b) => {
-      if (sortBy === "rating") return (b.rating || 0) - (a.rating || 0);
+      if (sortBy === "rating") return b.averageRating - a.averageRating;
       if (sortBy === "title") return a.title.localeCompare(b.title);
       if (sortBy === "artist") return a.artist.localeCompare(b.artist);
-      if (sortBy === "time") return (b.id || 0) - (a.id || 0);
+      // For "time", max ID represents recency
+      const maxIdA = Math.max(...a.reviews.map(r => r.id));
+      const maxIdB = Math.max(...b.reviews.map(r => r.id));
+      if (sortBy === "time") return maxIdB - maxIdA;
       return 0;
     });
 
@@ -32,8 +101,8 @@ export default function AlbumList() {
     gridMode === "compact"
       ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3"
       : gridMode === "spacious"
-      ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8"
-      : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6";
+        ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8"
+        : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6";
 
   const cycleGridMode = () => {
     setGridMode((prev) =>
@@ -68,11 +137,11 @@ export default function AlbumList() {
               className="w-full md:w-64 px-4 py-2 bg-gray-800 border border-gray-700 rounded text-gray-100 placeholder-gray-500 focus:outline-none focus:border-sky-500"
             />
             {/* Sort Dropdown with arrow */}
-              <div className="relative">
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="
+            <div className="relative">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="
                     appearance-none
                     w-full
                     bg-gray-900
@@ -91,25 +160,25 @@ export default function AlbumList() {
                     transition
                     duration-150
                   "
-                >
-                  <option value="rating">Sort by Rating</option>
-                  <option value="title">Sort by Title</option>
-                  <option value="artist">Sort by Artist</option>
-                  <option value="time">Sort by Recency</option>
-                </select>
+              >
+                <option value="rating">Sort by Rating</option>
+                <option value="title">Sort by Title</option>
+                <option value="artist">Sort by Artist</option>
+                <option value="time">Sort by Recency</option>
+              </select>
 
-                {/* ▼ arrow icon */}
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
+              {/* ▼ arrow icon */}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
 
 
 

@@ -57,7 +57,7 @@ export default function Home() {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-surface border border-border p-8 hover:border-[#333] transition-colors">
-            <p className="text-xs uppercase tracking-wider text-gray-500 mb-2">Total Albums</p>
+            <p className="text-xs uppercase tracking-wider text-gray-500 mb-2">Total Ratings</p>
             <p className="text-5xl font-black text-white">{isLoading ? "…" : totalAlbums}</p>
           </div>
           <div className="bg-surface border border-border p-8 hover:border-[#333] transition-colors">
