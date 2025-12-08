@@ -33,8 +33,9 @@ export default function AlbumDetails() {
 
   const location = useLocation();
   const albumToEdit = location.state?.albumToEdit;
+  const prefillAlbum = location.state?.prefillAlbum;
 
-  // ✅ Pre-fill form if editing
+  // ✅ Pre-fill form if editing or using "Rate This Album"
   useEffect(() => {
     if (albumToEdit) {
       setAlbum({
@@ -47,8 +48,26 @@ export default function AlbumDetails() {
         cover_url: albumToEdit.cover_url || "",
         spotify_url: albumToEdit.spotify_url || "",
       });
+      // Editing implies validation was already done
+      setSelectedFromSpotify(true);
+    } else if (prefillAlbum) {
+      // "Rate This Album" mode: fill metadata only, leave review fields blank
+      setAlbum((prev) => ({
+        ...prev,
+        title: prefillAlbum.title || "",
+        artist: prefillAlbum.artist || "",
+        genre: prefillAlbum.genre || "",
+        cover_url: prefillAlbum.cover_url || "",
+        spotify_url: prefillAlbum.spotify_url || "",
+        // Explicitly clear these for a new review
+        rating: "",
+        rater: "",
+        just: ""
+      }));
+      // Mark as validated since it came from an existing entry
+      setSelectedFromSpotify(true);
     }
-  }, [albumToEdit]);
+  }, [albumToEdit, prefillAlbum]);
 
   // ✅ Spotify Token
   useEffect(() => {
