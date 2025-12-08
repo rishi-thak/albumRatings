@@ -4,7 +4,9 @@ import {
   Routes,
   Route,
   Link,
+  useLocation, // Added useLocation
 } from "react-router-dom";
+import { AnimatePresence } from "framer-motion"; // Added AnimatePresence
 
 import Home from "./components/Home";
 import AlbumList from "./components/AlbumList";
@@ -86,6 +88,26 @@ function Nav() {
 }
 
 /**
+ * AnimatedRoutes:
+ * Handles the AnimatePresence logic which requires useLocation().
+ */
+function AnimatedRoutes() {
+  const location = useLocation();
+
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<Home />} />
+        <Route path="/albums" element={<AlbumList />} />
+        <Route path="/add/:numAlbums" element={<AlbumDetails />} />
+        <Route path="/play/:id" element={<PlayAlbum />} />
+        <Route path="*" element={<ErrorPage message="Page not found" />} />
+      </Routes>
+    </AnimatePresence>
+  );
+}
+
+/**
  * App:
  * - Keeps all backend route logic
  * - Prefetches albums for performance
@@ -114,13 +136,7 @@ export default function App() {
       <Router>
         <Nav />
         <main>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/albums" element={<AlbumList />} />
-            <Route path="/add/:numAlbums" element={<AlbumDetails />} />
-            <Route path="/play/:id" element={<PlayAlbum />} />
-            <Route path="*" element={<ErrorPage message="Page not found" />} />
-          </Routes>
+          <AnimatedRoutes />
         </main>
       </Router>
 

@@ -328,7 +328,7 @@ export default function PlayAlbum() {
       <div className="border-b border-[#222] bg-[#111]">
         <div className="max-w-7xl mx-auto px-6 py-6">
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/albums")}
             className="rounded bg-gray-100 text-gray-900 px-4 py-2 text-sm font-medium hover:bg-gray-200"
           >
             ← BACK
@@ -342,7 +342,12 @@ export default function PlayAlbum() {
         <div className="space-y-6">
           <div className="aspect-square bg-[#111] border border-[#222] overflow-hidden rounded-lg shadow-2xl">
             {merged.cover_url ? (
-              <img src={merged.cover_url} alt={merged.title} className="w-full h-full object-cover" />
+              <motion.img
+                layoutId={`cover-${merged.id}`}
+                src={merged.cover_url}
+                alt={merged.title}
+                className="w-full h-full object-cover"
+              />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-gray-600 text-7xl">
                 ♪
