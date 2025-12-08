@@ -51,9 +51,12 @@ export default function AlbumList() {
         };
       }
 
-      // Keep the latest ID / cover info if available
+      // Keep the latest ID / cover info / metadata if available
       if (album.id > groups[key].id) {
         groups[key].id = album.id;
+        groups[key].genre = album.genre;
+        groups[key].title = album.title;
+        groups[key].artist = album.artist;
       }
       if (album.cover_url) groups[key].cover_url = album.cover_url;
       if (album.spotify_url) groups[key].spotify_url = album.spotify_url;
