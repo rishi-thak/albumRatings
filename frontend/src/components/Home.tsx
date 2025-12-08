@@ -23,10 +23,25 @@ export default function Home() {
       ? (numericRatings.reduce((s, n) => s + n, 0) / numericRatings.length).toFixed(1)
       : "0.0";
 
-  const highestRated =
-    numericRatings.length > 0 ? Math.max(...numericRatings).toFixed(1) : null;
 
-  // Recently added: take the last 8 from the array (no schema change)
+  // Calculate Top Genre
+  const genres = albums.flatMap((a) =>
+    a.genre
+      ? a.genre.split(",").map(g => g.trim().toUpperCase()).filter(g => g !== "UNKNOWN" && g !== "")
+      : []
+  );
+
+  const topGenre = React.useMemo(() => {
+    if (genres.length === 0) return "N/A";
+    const counts: Record<string, number> = {};
+    genres.forEach(g => counts[g] = (counts[g] || 0) + 1);
+
+    // sorting entries by count (desc)
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    return sorted[0] ? sorted[0][0] : "N/A";
+  }, [genres]);
+
+  // recently added...
   const recentlyAdded = albums.slice(-8).reverse();
 
   return (
@@ -57,7 +72,7 @@ export default function Home() {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-surface border border-border p-8 hover:border-[#333] transition-colors">
-            <p className="text-xs uppercase tracking-wider text-gray-500 mb-2">Total Albums</p>
+            <p className="text-xs uppercase tracking-wider text-gray-500 mb-2">Total Ratings</p>
             <p className="text-5xl font-black text-white">{isLoading ? "…" : totalAlbums}</p>
           </div>
           <div className="bg-surface border border-border p-8 hover:border-[#333] transition-colors">
@@ -65,9 +80,9 @@ export default function Home() {
             <p className="text-5xl font-black text-white">{isLoading ? "…" : averageRating}</p>
           </div>
           <div className="bg-surface border border-border p-8 hover:border-[#333] transition-colors">
-            <p className="text-xs uppercase tracking-wider text-gray-500 mb-2">Highest Rated</p>
-            <p className="text-5xl font-black text-white">
-              {isLoading ? "…" : highestRated ? `${highestRated}/10` : "N/A"}
+            <p className="text-xs uppercase tracking-wider text-gray-500 mb-2">Top Genre</p>
+            <p className="text-5xl font-black text-white uppercase truncate">
+              {isLoading ? "…" : topGenre}
             </p>
           </div>
         </div>
