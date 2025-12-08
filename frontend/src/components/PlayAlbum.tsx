@@ -330,11 +330,20 @@ export default function PlayAlbum() {
 
           {/* Spotify button */}
           {merged.spotify_url && (
-            <a href={merged.spotify_url} target="_blank" rel="noopener noreferrer" className="block">
-              <button className="w-full bg-[#1DB954] hover:bg-[#1ed760] text-black font-bold py-4 rounded transition flex items-center justify-center gap-2">
-                <span>PLAY ON SPOTIFY</span>
+            <div className="space-y-4">
+              <a href={merged.spotify_url} target="_blank" rel="noopener noreferrer" className="block">
+                <button className="w-full bg-[#1DB954] hover:bg-[#1ed760] text-black font-bold py-4 rounded transition flex items-center justify-center gap-2">
+                  <span>PLAY ON SPOTIFY</span>
+                </button>
+              </a>
+
+              <button
+                onClick={() => navigate("/add/1", { state: { prefillAlbum: merged } })}
+                className="w-full bg-[#3b82f6] hover:bg-[#2563eb] text-white font-bold py-4 rounded transition flex items-center justify-center gap-2"
+              >
+                <span>RATE THIS ALBUM</span>
               </button>
-            </a>
+            </div>
           )}
         </div>
 
