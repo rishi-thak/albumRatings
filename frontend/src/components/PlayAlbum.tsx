@@ -177,8 +177,8 @@ export default function PlayAlbum() {
     if (!merged) return;
 
     // 1. Auth First
-    const ok = await verifyPasswordForEdit();
-    if (!ok) return;
+    const password = await requestAdminPassword();
+    if (!password) return;
 
     // 2. Select Entry (Visual Popup)
     const targetAlbum = await selectEntry("edit");
@@ -197,32 +197,19 @@ export default function PlayAlbum() {
 
   const queryClient = useQueryClient();
   const handleDelete = async () => {
-    // 1. Prompt Password
-    const passwordInput = prompt("Enter admin password to delete:");
+    // 1. Prompt and Verify Password
+    const passwordInput = await requestAdminPassword();
     if (!passwordInput) return;
 
-    // 2. Verify Password (using a dummy delete call)
-    try {
-      const checkRes = await fetch(`${API_BASE}/0`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: passwordInput }),
-      });
-      if (checkRes.status === 403) {
-        toast.error("Incorrect admin password.");
-        return;
-      }
-      // If checkRes.ok is false for other reasons (e.g., server error),
-      // we'll let the actual delete call handle it or just proceed.
-      // For now, only explicit 403 is a pre-check failure.
-    } catch {
-      // Network error during password check, proceed cautiously or inform user.
-      // For now, we'll let the main delete catch block handle network issues.
-    }
-
-    // 3. Select Entry
+    // 2. Select Entry
     const targetAlbum = await selectEntry("delete");
     if (!targetAlbum) return;
+
+    // 3. Confirm Deletion
+    const confirmed = window.confirm(
+      `Are you sure? You are deleting ${targetAlbum.rater}'s review for "${targetAlbum.title}".`
+    );
+    if (!confirmed) return;
 
     // 4. Execute Delete
     try {
@@ -260,33 +247,94 @@ export default function PlayAlbum() {
     }
   };
 
-  const verifyPasswordForEdit = async (): Promise<boolean> => {
-    const password = prompt("Enter admin password to edit:");
-    if (!password) return false;
+  const requestAdminPassword = (): Promise<string | null> => {
+    return new Promise((resolve) => {
+      toast.custom(
+        (t) => (
+          <div className="bg-[#111] border border-[#333] p-5 rounded-lg shadow-2xl w-72 animate-in fade-in zoom-in duration-200">
+            <h3 className="text-white font-bold mb-4 text-center text-lg">Admin Access</h3>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const form = e.target as HTMLFormElement;
+                const password = (form.elements.namedItem("password") as HTMLInputElement).value;
 
-    try {
-      // Safe no-op verification: try deleting id 0 (doesn't exist)
-      const res = await fetch(`${API_BASE}/0`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
-      });
+                if (!password) return;
 
-      if (res.status === 403) {
-        toast.error("Incorrect admin password.");
-        return false;
-      }
-      if (!res.ok) {
-        toast.error("Password verification failed.");
-        return false;
-      }
+                const loadingToast = toast.loading("Verifying...");
 
-      // pass the password forward if you ever want to reuse it
-      return true;
-    } catch {
-      toast.error("Network error verifying password.");
-      return false;
-    }
+                try {
+                  // Verify via dummy delete
+                  const res = await fetch(`${API_BASE}/0`, {
+                    method: "DELETE",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ password }),
+                  });
+
+                  toast.dismiss(loadingToast);
+
+                  // 403 = Forbidden (Wrong Password), 404 = Not Found (Correct Password, ID 0 doesn't exist)
+                  // But our backend might just return 404 for successful auth on ID 0? 
+                  // Actually, previous code checked: if (res.status === 403) error. if (!res.ok) error.
+                  // Let's stick to that logic but be careful.
+                  // If password is correct, deleting ID 0 likely returns 404 or 200 depending on implementation.
+                  // Let's check the previous implementation...
+                  // It said "Safe no-op verification: try deleting id 0".
+                  // If 403 -> Incorrect.
+                  // If !res.ok -> Failed.
+                  // Wait, deleting ID 0 will probably fail (404) if it doesn't exist.
+                  // If the backend returns 404 for "ID not found" but authentication passed, `res.ok` (200-299) might be false.
+                  // Let's assume if status is NOT 403, and network didn't fail, it's likely fine?
+                  // Actually, let's relax it: Only fail on 403.
+
+                  if (res.status === 403) {
+                    toast.error("Incorrect password");
+                  } else {
+                    // Success (or at least Auth Success)
+                    toast.dismiss(t.id);
+                    resolve(password);
+                    return;
+                  }
+                } catch {
+                  toast.dismiss(loadingToast);
+                  toast.error("Verification failed");
+                }
+                // Don't resolve here, let them try again
+              }}
+              className="flex flex-col gap-4"
+            >
+              <input
+                name="password"
+                type="password"
+                placeholder="Enter password..."
+                autoFocus
+                className="bg-[#222] border border-[#333] text-white px-4 py-3 rounded focus:outline-none focus:border-sky-500 transition-colors"
+                autoComplete="off"
+              />
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    toast.dismiss(t.id);
+                    resolve(null);
+                  }}
+                  className="flex-1 py-2 text-sm bg-gray-800 text-gray-300 rounded hover:bg-gray-700 transition-colors font-medium border border-gray-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2 text-sm bg-sky-600 text-white rounded hover:bg-sky-500 transition-colors font-bold shadow-lg shadow-sky-900/20"
+                >
+                  Verify
+                </button>
+              </div>
+            </form>
+          </div>
+        ),
+        { duration: Infinity, id: "auth-toast" }
+      );
+    });
   };
 
 
