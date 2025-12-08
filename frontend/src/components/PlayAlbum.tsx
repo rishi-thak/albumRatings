@@ -195,6 +195,44 @@ export default function PlayAlbum() {
     navigate(`/add/1`, { state: { albumToEdit: fullTarget } });
   };
 
+  const confirmDelete = (rater: string, title: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      toast.custom(
+        (t) => (
+          <div className="bg-[#111] border border-red-900/50 p-5 rounded-lg shadow-2xl w-80 animate-in fade-in zoom-in duration-200">
+            <h3 className="text-red-500 font-bold mb-2 text-lg flex items-center gap-2">
+              ⚠️ Confirm Deletion
+            </h3>
+            <p className="text-gray-300 text-sm mb-6 leading-relaxed">
+              Are you sure? You are deleting <span className="font-bold text-white">{rater}'s</span> review for <span className="font-bold text-white">"{title}"</span>.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  toast.dismiss(t.id);
+                  resolve(false);
+                }}
+                className="flex-1 py-2 text-sm bg-gray-800 text-gray-300 rounded hover:bg-gray-700 transition-colors font-medium border border-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  toast.dismiss(t.id);
+                  resolve(true);
+                }}
+                className="flex-1 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-500 transition-colors font-bold shadow-lg shadow-red-900/20"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        ),
+        { duration: Infinity, id: "confirm-toast" }
+      );
+    });
+  };
+
   const queryClient = useQueryClient();
   const handleDelete = async () => {
     // 1. Prompt and Verify Password
@@ -206,9 +244,7 @@ export default function PlayAlbum() {
     if (!targetAlbum) return;
 
     // 3. Confirm Deletion
-    const confirmed = window.confirm(
-      `Are you sure? You are deleting ${targetAlbum.rater}'s review for "${targetAlbum.title}".`
-    );
+    const confirmed = await confirmDelete(targetAlbum.rater, targetAlbum.title);
     if (!confirmed) return;
 
     // 4. Execute Delete
