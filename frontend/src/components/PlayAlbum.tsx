@@ -5,6 +5,7 @@ import { getSpotifyInfo } from "../services/api";
 import { Album } from "../services/api";
 import toast from "react-hot-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "framer-motion";
 
 
 // Use the same API_BASE your other services use
@@ -71,6 +72,7 @@ export default function PlayAlbum() {
 
   // Carousel State
   const [reviewIndex, setReviewIndex] = useState(0);
+  const [direction, setDirection] = useState(0);
 
   // Ensure index is valid when reviews change
   useEffect(() => {
@@ -83,10 +85,30 @@ export default function PlayAlbum() {
 
   // Carousel Navigation
   const handlePrevReview = () => {
+    setDirection(-1);
     setReviewIndex((prev) => (prev === 0 ? relatedReviews.length - 1 : prev - 1));
   };
   const handleNextReview = () => {
+    setDirection(1);
     setReviewIndex((prev) => (prev === relatedReviews.length - 1 ? 0 : prev + 1));
+  };
+
+  // Animation Variants
+  const variants = {
+    enter: (direction: number) => ({
+      x: direction > 0 ? 300 : -300,
+      opacity: 0
+    }),
+    center: {
+      zIndex: 1,
+      x: 0,
+      opacity: 1
+    },
+    exit: (direction: number) => ({
+      zIndex: 0,
+      x: direction < 0 ? 300 : -300,
+      opacity: 0
+    })
   };
 
   // Calculate Average Rating
@@ -306,7 +328,7 @@ export default function PlayAlbum() {
       <div className="border-b border-[#222] bg-[#111]">
         <div className="max-w-7xl mx-auto px-6 py-6">
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/albums")}
             className="rounded bg-gray-100 text-gray-900 px-4 py-2 text-sm font-medium hover:bg-gray-200"
           >
             ← BACK
@@ -320,7 +342,12 @@ export default function PlayAlbum() {
         <div className="space-y-6">
           <div className="aspect-square bg-[#111] border border-[#222] overflow-hidden rounded-lg shadow-2xl">
             {merged.cover_url ? (
-              <img src={merged.cover_url} alt={merged.title} className="w-full h-full object-cover" />
+              <motion.img
+                layoutId={`cover-${merged.id}`}
+                src={merged.cover_url}
+                alt={merged.title}
+                className="w-full h-full object-cover"
+              />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-gray-600 text-7xl">
                 ♪
@@ -330,11 +357,20 @@ export default function PlayAlbum() {
 
           {/* Spotify button */}
           {merged.spotify_url && (
-            <a href={merged.spotify_url} target="_blank" rel="noopener noreferrer" className="block">
-              <button className="w-full bg-[#1DB954] hover:bg-[#1ed760] text-black font-bold py-4 rounded transition flex items-center justify-center gap-2">
-                <span>PLAY ON SPOTIFY</span>
+            <div className="space-y-4">
+              <a href={merged.spotify_url} target="_blank" rel="noopener noreferrer" className="block">
+                <button className="w-full bg-[#1DB954] hover:bg-[#1ed760] text-black font-bold py-4 rounded transition flex items-center justify-center gap-2">
+                  <span>PLAY ON SPOTIFY</span>
+                </button>
+              </a>
+
+              <button
+                onClick={() => navigate("/add/1", { state: { prefillAlbum: merged } })}
+                className="w-full bg-[#3b82f6] hover:bg-[#2563eb] text-white font-bold py-4 rounded transition flex items-center justify-center gap-2"
+              >
+                <span>RATE THIS ALBUM</span>
               </button>
-            </a>
+            </div>
           )}
         </div>
 
@@ -402,13 +438,29 @@ export default function PlayAlbum() {
                   )}
                 </div>
 
-                <div className="flex-1 bg-[#111] border border-[#222] p-6 rounded-lg mb-6 relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-1 h-full bg-sky-500"></div>
-                  <div className="h-full overflow-y-auto custom-scrollbar pr-2">
-                    <p className="text-gray-300 text-lg leading-relaxed whitespace-pre-wrap">
-                      {currentReview.just || <span className="italic text-gray-600">No written justification.</span>}
-                    </p>
-                  </div>
+                <div className="flex-1 relative overflow-hidden mb-6">
+                  <AnimatePresence mode="wait" custom={direction}>
+                    <motion.div
+                      key={reviewIndex}
+                      custom={direction}
+                      variants={variants}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      transition={{
+                        x: { type: "spring", stiffness: 300, damping: 30 },
+                        opacity: { duration: 0.2 }
+                      }}
+                      className="h-full bg-[#111] border border-[#222] p-6 rounded-lg relative"
+                    >
+                      <div className="absolute top-0 left-0 w-1 h-full bg-sky-500"></div>
+                      <div className="h-full overflow-y-auto custom-scrollbar pr-2">
+                        <p className="text-gray-300 text-lg leading-relaxed whitespace-pre-wrap">
+                          {currentReview.just || <span className="italic text-gray-600">No written justification.</span>}
+                        </p>
+                      </div>
+                    </motion.div>
+                  </AnimatePresence>
                 </div>
 
                 {/* Carousel Controls */}

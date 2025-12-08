@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import React from "react";
 import { Link } from "react-router-dom";
 import { Play } from "lucide-react";
@@ -11,12 +12,20 @@ export default function AlbumCard({ album }: { album: any }) {
   };
 
   return (
-    <div className="group relative rounded-lg overflow-hidden border border-gray-700 bg-gray-900 hover:border-sky-500 transition-all">
+    <motion.div
+      layout
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      transition={{ duration: 0.1 }}
+      className="group relative rounded-lg overflow-hidden border border-gray-700 bg-gray-900 hover:border-sky-500 transition-all"
+    >
       <Link to={`/play/${album.id}`}>
         {/* Cover */}
         <div className="aspect-square relative overflow-hidden bg-gray-800">
           {album.cover_url ? (
-            <img
+            <motion.img
+              layoutId={`cover-${album.id}`}
               src={album.cover_url}
               alt={album.title}
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
@@ -96,6 +105,6 @@ export default function AlbumCard({ album }: { album: any }) {
           )}
         </div>
       </Link>
-    </div>
+    </motion.div>
   );
 }
