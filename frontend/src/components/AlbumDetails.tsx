@@ -88,7 +88,7 @@ export default function AlbumDetails() {
 
     if (name === "title") {
       setSelectedFromSpotify(false);
-  }
+    }
   };
 
   // ✅ Spotify search
@@ -133,6 +133,22 @@ export default function AlbumDetails() {
     }
   };
 
+  // ✅ Round rating on blur
+  const handleRatingBlur = () => {
+    if (album.rating === "") return;
+    let val = parseFloat(album.rating);
+    if (isNaN(val)) return;
+
+    // Clamp between 0 and 10
+    if (val < 0) val = 0;
+    if (val > 10) val = 10;
+
+    // Round to nearest 0.5
+    val = Math.round(val * 2) / 2;
+
+    setAlbum((prev) => ({ ...prev, rating: val.toString() }));
+  };
+
   // ✅ Submit form (add or re-add)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,12 +158,23 @@ export default function AlbumDetails() {
       return;
     }
 
+    if (album.rating === "") {
+      toast.error("Please provide a rating (0-10).");
+      return;
+    }
+
+    // Ensure rating is normalized before sending
+    let finalRating = parseFloat(album.rating);
+    finalRating = Math.round(finalRating * 2) / 2;
+    if (finalRating < 0) finalRating = 0;
+    if (finalRating > 10) finalRating = 10;
+
     if (isSubmitting) return;
-      setIsSubmitting(true);
+    setIsSubmitting(true);
 
     const payload = {
       ...album,
-      rating: Number(album.rating) || 0,
+      rating: finalRating,
       cover_url: album.cover_url || "",
       spotify_url: album.spotify_url || "",
     };
@@ -299,9 +326,10 @@ export default function AlbumDetails() {
               name="rating"
               value={album.rating}
               onChange={handleChange}
+              onBlur={handleRatingBlur}
               min="0"
               max="10"
-              step="0.5"
+              step="any"
               className="w-full px-4 py-3 bg-[#111] border border-[#222] rounded focus:border-[#3b82f6] focus:outline-none text-gray-100"
             />
           </div>
@@ -347,8 +375,8 @@ export default function AlbumDetails() {
                 ? "Saving..."
                 : "Submitting..."
               : albumToEdit
-              ? "Save Changes"
-              : "Submit Album"}
+                ? "Save Changes"
+                : "Submit Album"}
           </button>
         </form>
 

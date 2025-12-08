@@ -36,15 +36,27 @@ export default function PlayAlbum() {
   // Create a derived list of ALL reviews for this album
   const relatedReviews = useMemo(() => {
     if (!album || !albums) return [];
-    const keyTitle = album.title.trim().toLowerCase();
-    const keyArtist = album.artist.trim().toLowerCase();
+
+    // Normalize helper: lowercase + remove accents
+    const normalize = (s: string) =>
+      s.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    const keyTitle = normalize(album.title);
+    const keyArtist = normalize(album.artist);
 
     return albums.filter(
       (a) =>
-        a.title.trim().toLowerCase() === keyTitle &&
-        a.artist.trim().toLowerCase() === keyArtist
+        normalize(a.title) === keyTitle &&
+        normalize(a.artist) === keyArtist
     );
   }, [album, albums]);
+
+  // Cleanup toasts on unmount to prevent "zombie" popups
+  useEffect(() => {
+    return () => {
+      toast.dismiss("selection-toast");
+    };
+  }, []);
 
 
 

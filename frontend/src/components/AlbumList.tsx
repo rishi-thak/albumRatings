@@ -29,7 +29,11 @@ export default function AlbumList() {
     } = {};
 
     albums.forEach((album) => {
-      const key = `${album.title}-${album.artist}`;
+      // Normalize key (remove accents, lowercase)
+      const normalize = (s: string) =>
+        s.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+      const key = `${normalize(album.title)}-${normalize(album.artist)}`;
       if (!groups[key]) {
         groups[key] = {
           id: album.id, // Use the first encounter's ID as the group ID initially
