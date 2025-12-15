@@ -133,16 +133,14 @@ export default function AlbumDetails() {
       });
       const artistData = await res.json();
 
-      setAlbum({
+      setAlbum((prev) => ({
+        ...prev,
         title: albumItem.name,
         artist: albumItem.artists[0].name,
         genre: artistData.genres.join(", ") || "Unknown",
-        rating: "",
-        rater: "",
-        just: "",
         cover_url: albumItem.images[0]?.url || "",
         spotify_url: albumItem.external_urls.spotify || "",
-      });
+      }));
 
       setSelectedFromSpotify(true);
 
@@ -201,7 +199,7 @@ export default function AlbumDetails() {
     try {
       // --- If editing ---
       if (albumToEdit) {
-        const password = prompt("Enter admin password to edit album:");
+        const password = location.state?.adminPassword || prompt("Enter admin password to edit album:");
         if (!password) {
           setIsSubmitting(false);
           return toast("Edit cancelled.");
@@ -209,7 +207,7 @@ export default function AlbumDetails() {
 
         toast.loading("Updating album...", { id: "edit" });
 
-        const res = await fetch(`http://127.0.0.1:8000/api/albums/${albumToEdit.id}`, {
+        const res = await fetch(`http://127.0.0.1:5000/api/albums/${albumToEdit.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ...payload, password }),
