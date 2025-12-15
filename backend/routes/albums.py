@@ -13,7 +13,7 @@ bp = Blueprint("albums", __name__, url_prefix="/api/albums")
 @bp.route("/", methods=["GET"])
 def get_albums():
     try:
-        result = supabase.table("albums").select("*").execute()
+        result = supabase.table("albums").select("*").order("id").execute()
 
         # Log the result structure so you can see exactly what’s coming back
         print("Supabase raw result:", result)

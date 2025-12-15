@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 
 // Use the same API_BASE your other services use
-const API_BASE = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000/api/albums";
+const API_BASE = process.env.REACT_APP_API_URL || "http://127.0.0.1:5000/api/albums";
 
 export default function PlayAlbum() {
   const { id } = useParams();
@@ -192,7 +192,7 @@ export default function PlayAlbum() {
     };
 
     toast.success("Access granted.");
-    navigate(`/add/1`, { state: { albumToEdit: fullTarget } });
+    navigate(`/add/1`, { state: { albumToEdit: fullTarget, adminPassword: password } });
   };
 
   const confirmDelete = (rater: string, title: string): Promise<boolean> => {
