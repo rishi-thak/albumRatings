@@ -1,5 +1,11 @@
+import sys
+import os
 from flask import Flask
 from flask_cors import CORS
+
+# Add current directory to sys.path for Vercel imports
+sys.path.append(os.path.dirname(__file__))
+
 from routes.albums import bp as albums_bp
 from dotenv import load_dotenv
 
