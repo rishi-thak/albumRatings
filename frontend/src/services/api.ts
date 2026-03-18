@@ -12,7 +12,7 @@ export interface Album {
 }
 
 // ✅ Use relative path for Vercel functions, or environment variable for local dev override
-const API_BASE = process.env.REACT_APP_API_URL || "/api/albums";
+const API_BASE = (typeof process !== 'undefined' && process.env.REACT_APP_API_URL) || "/api/albums";
 
 export async function getAlbums(): Promise<Album[]> {
   const res = await fetch(API_BASE + "/");
