@@ -13,7 +13,7 @@ CORS(app, origins=[
     "https://album-ratings.vercel.app",
     "https://albumwriter-backend.onrender.com",
     "https://rrecords.vercel.app",
-    "https://www.rrecords.dev"
+    "https://rrecords.dev"
 ])
 
 
